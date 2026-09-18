@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Nook Nitro 7.0</title>
+  <title>Nook Nitro 8.0</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       --bg: #030305;
       --liquid-card: rgba(18, 18, 26, 0.78);
-      --liquid-specular: linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.03) 45%, rgba(255, 255, 255, 0.08) 100%);
+      --liquid-specular: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.03) 45%, rgba(255, 255, 255, 0.08) 100%);
       --liquid-border: rgba(255, 255, 255, 0.16);
       --liquid-border-strong: rgba(255, 255, 255, 0.45);
       --text: #ffffff;
@@ -17,11 +17,18 @@
       --danger: #ff453a;
       --success: #30d158;
       --accent: #0a84ff;
-      --admin-gold: #ffd700;
+      --orb-1: #6366f1;
+      --orb-2: #ec4899;
       --radius-2xl: 32px;
       --radius-xl: 22px;
       --radius-pill: 9999px;
     }
+
+    /* ТЕМЫ ПРИЛОЖЕНИЯ */
+    body.theme-cyber { --bg: #070312; --orb-1: #a855f7; --orb-2: #06b6d4; --liquid-card: rgba(24, 14, 45, 0.8); }
+    body.theme-space { --bg: #020813; --orb-1: #3b82f6; --orb-2: #1d4ed8; --liquid-card: rgba(10, 25, 47, 0.8); }
+    body.theme-crimson { --bg: #100204; --orb-1: #ef4444; --orb-2: #991b1b; --liquid-card: rgba(36, 10, 15, 0.8); }
+    body.theme-gold-hq { --bg: #0b0902; --orb-1: #eab308; --orb-2: #ca8a04; --liquid-card: rgba(35, 29, 10, 0.8); }
 
     * {
       box-sizing: border-box;
@@ -40,6 +47,7 @@
       height: 100dvh;
       overflow: hidden;
       position: relative;
+      transition: background 0.3s;
     }
 
     .ambient-glow {
@@ -53,11 +61,11 @@
       position: absolute;
       border-radius: 50%;
       filter: blur(85px);
-      opacity: 0.28;
+      opacity: 0.32;
       animation: floatOrb 18s ease-in-out infinite alternate;
     }
-    .orb-1 { width: 400px; height: 400px; background: radial-gradient(circle, #ffffff, #6366f1); top: -100px; left: 10%; }
-    .orb-2 { width: 440px; height: 440px; background: radial-gradient(circle, #ec4899, #3b82f6); bottom: -120px; right: -60px; animation-duration: 22s; }
+    .orb-1 { width: 400px; height: 400px; background: radial-gradient(circle, #ffffff, var(--orb-1)); top: -100px; left: 10%; }
+    .orb-2 { width: 440px; height: 440px; background: radial-gradient(circle, var(--orb-2), #3b82f6); bottom: -120px; right: -60px; animation-duration: 22s; }
     @keyframes floatOrb {
       0% { transform: translate(0, 0) scale(1); }
       50% { transform: translate(40px, 30px) scale(1.1); }
@@ -77,8 +85,8 @@
       border-bottom: 1px solid var(--liquid-border);
     }
     .brand-wrap { display: flex; align-items: center; gap: 8px; }
-    .brand-logo { font-weight: 900; font-size: 22px; letter-spacing: -0.05em; color: #fff; text-shadow: 0 0 20px rgba(255,255,255,0.4); }
-    .brand-tag { font-size: 9px; font-weight: 900; color: #000; background: #fff; padding: 2px 7px; border-radius: var(--radius-pill); box-shadow: 0 0 10px rgba(255,255,255,0.4); }
+    .brand-logo { font-weight: 900; font-size: 22px; letter-spacing: -0.05em; color: #fff; }
+    .brand-tag { font-size: 9px; font-weight: 900; color: #000; background: #fff; padding: 2px 7px; border-radius: var(--radius-pill); }
 
     .user-pill-liquid {
       display: flex;
@@ -111,32 +119,27 @@
     .view { display: none; height: 100%; }
     .view.active { display: flex; }
 
-    /* ================= СТИЛИ DISCORD NITRO ================= */
-    /* Рамки аватарок */
+    /* ================= NITRO РАМКИ И ЭФФЕКТЫ ================= */
     .frame-none { border: 2px solid transparent; }
-    .frame-neon { border: 3px solid #00f0ff; box-shadow: 0 0 16px #00f0ff, inset 0 0 8px #00f0ff; }
-    .frame-cyber { border: 3px solid #f43f5e; box-shadow: 0 0 18px #f43f5e; border-style: dashed; animation: rotateBorder 12s linear infinite; }
-    .frame-fire { border: 3px solid #ff7b00; box-shadow: 0 0 20px #ff3700; }
-    .frame-ice { border: 3px solid #7dd3fc; box-shadow: 0 0 18px #38bdf8; }
-    .frame-gold { border: 3px solid #fbbf24; box-shadow: 0 0 20px rgba(251, 191, 36, 0.8); }
-    /* Секретная рамка админа */
-    .frame-matrix-hq { border: 3px solid #10b981; box-shadow: 0 0 25px #059669, 0 0 40px rgba(16, 185, 129, 0.6); animation: matrixPulse 2s infinite alternate; }
+    .frame-neon { border: 3px solid #00f0ff; box-shadow: 0 0 14px #00f0ff; }
+    .frame-cyber { border: 3px solid #f43f5e; box-shadow: 0 0 16px #f43f5e; border-style: dashed; }
+    .frame-fire { border: 3px solid #ff7b00; box-shadow: 0 0 18px #ff3700; }
+    .frame-ice { border: 3px solid #7dd3fc; box-shadow: 0 0 16px #38bdf8; }
+    .frame-gold { border: 3px solid #fbbf24; box-shadow: 0 0 18px rgba(251, 191, 36, 0.8); }
+    .frame-matrix-hq { border: 3px solid #10b981; box-shadow: 0 0 22px #059669; animation: matrixPulse 2s infinite alternate; }
     @keyframes matrixPulse { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(60deg); } }
-    @keyframes rotateBorder { 100% { transform: rotate(360deg); } }
 
-    /* Эффекты текста (Никнеймы) */
+    /* Эффекты никнейма */
     .fx-none {}
-    .fx-neon { text-shadow: 0 0 8px currentColor, 0 0 20px currentColor; }
+    .fx-neon { text-shadow: 0 0 8px currentColor, 0 0 16px currentColor; }
     .fx-glitch { animation: glitchText 1.5s infinite; }
-    .fx-fire { text-shadow: 0 0 6px #ff7b00, 0 -2px 10px #ff3700, 0 -4px 18px #ef4444; }
-    .fx-rainbow { background: linear-gradient(90deg, #ff007a, #7928ca, #0070f3, #00dfd8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: rainbowShift 4s linear infinite; background-size: 300%; }
-    /* Секретный эффект создателя */
-    .fx-hologram-god { background: linear-gradient(135deg, #fff, #fbbf24, #10b981, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 0 20px rgba(251,191,36,0.8); animation: godPulse 3s infinite; }
-    @keyframes rainbowShift { 0% { background-position: 0% 50%; } 100% { background-position: 100% 50%; } }
-    @keyframes glitchText { 0% { transform: skew(0deg); } 20% { transform: skew(-3deg); } 40% { transform: skew(3deg); } 60% { transform: skew(-1deg); } 100% { transform: skew(0deg); } }
-    @keyframes godPulse { 0%, 100% { filter: drop-shadow(0 0 8px rgba(255,215,0,0.8)); } 50% { filter: drop-shadow(0 0 20px rgba(16,185,129,0.9)); } }
+    .fx-fire { text-shadow: 0 0 6px #ff7b00, 0 -2px 10px #ff3700; }
+    .fx-rainbow { background: linear-gradient(90deg, #ff007a, #7928ca, #0070f3, #00dfd8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .fx-hologram-god { text-shadow: 0 0 10px #ffd700, 0 0 20px #10b981; font-weight: 900; }
 
-    /* Постеры шапки профиля */
+    @keyframes glitchText { 0% { transform: skew(0deg); } 20% { transform: skew(-3deg); } 40% { transform: skew(3deg); } 100% { transform: skew(0deg); } }
+
+    /* Постеры (10+ для админа) */
     .banner-preview {
       width: 100%; height: 110px; border-radius: var(--radius-xl) var(--radius-xl) 0 0; background-size: cover; background-position: center; position: relative;
     }
@@ -144,9 +147,20 @@
     .banner-space { background-image: linear-gradient(180deg, rgba(0,0,0,0.2), rgba(18,18,26,1)), url('https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=800&q=80'); }
     .banner-synth { background-image: linear-gradient(180deg, rgba(0,0,0,0.2), rgba(18,18,26,1)), url('https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=800&q=80'); }
     .banner-sunset { background-image: linear-gradient(180deg, rgba(0,0,0,0.2), rgba(18,18,26,1)), url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80'); }
-    .banner-darkmatter-hq { background-image: linear-gradient(180deg, rgba(0,0,0,0.3), rgba(18,18,26,1)), url('https://images.unsplash.com/photo-1534447677768-be436bb09401?w=800&q=80'); filter: contrast(130%); }
+    
+    /* 10 админских постеров */
+    .b-hq-1 { background-image: linear-gradient(180deg, rgba(0,0,0,0.3), rgba(18,18,26,1)), url('https://images.unsplash.com/photo-1534447677768-be436bb09401?w=800&q=80'); }
+    .b-hq-2 { background-image: linear-gradient(180deg, rgba(0,0,0,0.3), rgba(18,18,26,1)), url('https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800&q=80'); }
+    .b-hq-3 { background-image: linear-gradient(180deg, rgba(0,0,0,0.3), rgba(18,18,26,1)), url('https://images.unsplash.com/photo-1519681393784-d120267933ba?w=800&q=80'); }
+    .b-hq-4 { background-image: linear-gradient(180deg, rgba(0,0,0,0.3), rgba(18,18,26,1)), url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&q=80'); }
+    .b-hq-5 { background-image: linear-gradient(180deg, rgba(0,0,0,0.3), rgba(18,18,26,1)), url('https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=800&q=80'); }
+    .b-hq-6 { background-image: linear-gradient(180deg, rgba(0,0,0,0.3), rgba(18,18,26,1)), url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&q=80'); }
+    .b-hq-7 { background-image: linear-gradient(180deg, rgba(0,0,0,0.3), rgba(18,18,26,1)), url('https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&q=80'); }
+    .b-hq-8 { background-image: linear-gradient(180deg, rgba(0,0,0,0.3), rgba(18,18,26,1)), url('https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=800&q=80'); }
+    .b-hq-9 { background-image: linear-gradient(180deg, rgba(0,0,0,0.3), rgba(18,18,26,1)), url('https://images.unsplash.com/photo-1511447333015-45b65e60f6d5?w=800&q=80'); }
+    .b-hq-10 { background-image: linear-gradient(180deg, rgba(0,0,0,0.3), rgba(18,18,26,1)), url('https://images.unsplash.com/photo-1516339901601-2e1b62dc0c45?w=800&q=80'); }
 
-    /* ================= ЭКРАНЫ ================= */
+    /* ЭКРАНЫ */
     #view-chats { flex-direction: column; height: 100%; padding: 16px; overflow-y: auto; gap: 14px; }
     .chat-subtabs { display: flex; gap: 8px; background: rgba(255,255,255,0.06); padding: 4px; border-radius: var(--radius-pill); border: 1px solid var(--liquid-border); }
     .chat-subtab-btn { flex: 1; background: transparent; border: none; color: var(--muted); font-size: 13px; font-weight: 800; padding: 8px 12px; border-radius: var(--radius-pill); cursor: pointer; }
@@ -204,7 +218,7 @@
     .toast-liquid { background: rgba(24, 24, 30, 0.96); border: 1px solid var(--liquid-border-strong); backdrop-filter: blur(25px); padding: 12px 18px; border-radius: var(--radius-pill); font-size: 13px; font-weight: 800; color: #fff; text-align: center; }
   </style>
 </head>
-<body>
+<body class="theme-oled">
 
   <div class="ambient-glow">
     <div class="orb orb-1"></div>
@@ -216,10 +230,10 @@
   <header>
     <div class="brand-wrap">
       <div class="brand-logo">NOOK</div>
-      <div class="brand-tag">NITRO 7.0</div>
+      <div class="brand-tag">NITRO 8.0</div>
     </div>
     <div class="user-pill-liquid" onclick="_openUserHub()">
-      <div id="user-avatar-frame-wrap" style="position:relative; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+      <div id="user-avatar-frame-wrap" style="position:relative; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
         <img id="user-avatar-img" class="user-avatar-round" style="display:none; width:26px; height:26px;" />
         <div id="user-avatar-placeholder" class="user-avatar-round" style="width:26px; height:26px;">N</div>
       </div>
@@ -235,11 +249,8 @@
         <button id="subtab-direct" class="chat-subtab-btn active" onclick="_switchChatTab('direct')">Личные чаты</button>
         <button id="subtab-groups" class="chat-subtab-btn" onclick="_switchChatTab('groups')">Группы</button>
       </div>
-
       <div id="direct-chats-list" style="display:flex; flex-direction:column; gap:10px;"></div>
-      
       <div id="groups-chats-list" style="display:none; flex-direction:column; gap:10px;">
-        <button class="btn-liquid-main" style="margin-bottom:8px;" onclick="_showModal('modal-create-group')">+ Создать новую группу</button>
         <div id="groups-container" style="display:flex; flex-direction:column; gap:10px;"></div>
       </div>
     </section>
@@ -248,71 +259,45 @@
     <section id="view-feed" class="view">
       <div class="liquid-composer-box">
         <textarea id="feed-post-text" class="composer-textarea" placeholder="Что нового?"></textarea>
-        
         <div class="composer-bottom-bar">
           <label class="btn-pick-liquid">
-            <svg style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.2;" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
             <span>Фото</span>
             <input type="file" id="feed-photo-picker" accept="image/*" style="display:none;" onchange="_handlePostPhotoSelect(event)">
           </label>
           <button class="btn-publish-liquid" id="btn-post-submit" onclick="_sendFeedPost()">Опубликовать</button>
         </div>
       </div>
-
       <div id="feed-stream" style="display:flex; flex-direction:column; gap:14px;"></div>
     </section>
 
-    <!-- ЭКРАН: ПОИСК ПОЛЬЗОВАТЕЛЕЙ -->
+    <!-- ЭКРАН: ПОИСК -->
     <section id="view-search" class="view">
       <div class="search-input-box">
-        <svg style="width:18px;height:18px;stroke:var(--muted);fill:none;stroke-width:2.2;" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input type="text" placeholder="Поиск по юзернейму..." oninput="_handleSearchInput(event)">
       </div>
       <div id="search-results-container" style="display:flex; flex-direction:column; gap:8px;"></div>
     </section>
 
-    <!-- ЭКРАН: HQ АДМИН (БАНЫ + УПРАВЛЕНИЕ) -->
+    <!-- ЭКРАН: HQ АДМИН -->
     <section id="view-admin" class="view">
-      <!-- Новая расширенная система банов -->
       <div class="admin-liquid-card">
-        <h3>Модерация аккаунтов (Бан / Разбан)</h3>
-        <p style="color:var(--muted); font-size:12px; margin-bottom:10px;">Блокировка доступа на время или навсегда.</p>
-        
+        <h3>Модерация (Бан / Разбан)</h3>
         <div class="liquid-input-field">
           <label>Юзернейм нарушителя</label>
-          <input type="text" id="admin-ban-username" placeholder="Логин нарушителя">
+          <input type="text" id="admin-ban-username" placeholder="Логин">
         </div>
-
         <div class="liquid-input-field">
-          <label>Срок блокировки</label>
+          <label>Срок</label>
           <select id="admin-ban-duration">
-            <option value="perm">Навсегда (Permanent)</option>
-            <option value="1h">На 1 час</option>
-            <option value="24h">На 24 часа</option>
-            <option value="7d">На 7 дней</option>
-            <option value="30d">На 30 дней</option>
+            <option value="perm">Навсегда</option>
+            <option value="1h">1 час</option>
+            <option value="24h">24 часа</option>
+            <option value="7d">7 дней</option>
           </select>
         </div>
-
-        <div class="liquid-input-field">
-          <label>Причина бана</label>
-          <input type="text" id="admin-ban-reason" placeholder="Нарушение правил платформы">
-        </div>
-
         <div style="display:flex; gap:8px;">
-          <button class="btn-liquid-main" style="background:var(--danger); color:#fff;" onclick="_adminApplyUserBan(true)">Выдать бан</button>
-          <button class="btn-liquid-main btn-liquid-outline" onclick="_adminApplyUserBan(false)">Снять бан</button>
-        </div>
-      </div>
-
-      <div class="admin-liquid-card">
-        <h3>Геоблокировка стран</h3>
-        <div class="liquid-input-field">
-          <input type="text" id="admin-country-code" placeholder="Код страны (UA, US...)" maxlength="2" style="text-transform:uppercase;">
-        </div>
-        <div style="display:flex; gap:8px;">
-          <button class="btn-liquid-main" style="background:var(--danger); color:#fff;" onclick="_adminToggleCountry(true)">Забанить</button>
-          <button class="btn-liquid-main btn-liquid-outline" onclick="_adminToggleCountry(false)">Разбанить</button>
+          <button class="btn-liquid-main" style="background:var(--danger); color:#fff;" onclick="_adminApplyUserBan(true)">Забанить</button>
+          <button class="btn-liquid-main btn-liquid-outline" onclick="_adminApplyUserBan(false)">Разбанить</button>
         </div>
       </div>
 
@@ -350,7 +335,7 @@
     </nav>
   </footer>
 
-  <!-- МОДАЛКА: Просмотр профиля (Красивый баннер + Рамка + Стиль Nitro) -->
+  <!-- МОДАЛКА: Просмотр профиля (с исправленным текстом ника!) -->
   <div id="modal-user-view" class="modal-backdrop">
     <div class="modal-liquid-shell">
       <div class="banner-preview banner-cyber" id="uv-banner"></div>
@@ -359,8 +344,10 @@
           <div id="uv-avatar-frame-box" style="position:relative; width:84px; height:84px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
             <img id="uv-avatar" style="width:74px; height:74px; border-radius:50%; object-fit:cover; background:#1c1c1e;">
           </div>
+          
+          <!-- Исправленный никнейм без сплошных заливок! -->
           <div style="display:flex; align-items:center; gap:6px;">
-            <h3 id="uv-username" style="font-size:18px;">@user</h3>
+            <h3 id="uv-username" style="font-size:19px; font-weight:900;">@user</h3>
             <svg id="uv-badge-verified" class="verified-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
           </div>
           <div id="uv-bio" style="font-size:13px; color:var(--muted); text-align:center;"></div>
@@ -371,7 +358,7 @@
           </div>
 
           <div id="uv-action-btns" style="display:flex; gap:8px; width:100%; margin-top:8px;">
-            <button id="uv-chat-btn" class="btn-liquid-main" style="flex:1; padding:9px;" onclick="_openChatModalFromProfile()">Написать сообщение</button>
+            <button id="uv-chat-btn" class="btn-liquid-main" style="flex:1; padding:10px;" onclick="_openChatModalFromProfile()">Написать сообщение</button>
           </div>
         </div>
         <button class="btn-liquid-main btn-liquid-outline" style="margin-top:12px;" onclick="_hideModal('modal-user-view')">Закрыть</button>
@@ -379,17 +366,17 @@
     </div>
   </div>
 
-  <!-- МОДАЛКА: Настройки своего профиля (Nitro Studio + Секретки админа) -->
+  <!-- МОДАЛКА: Кастомизация профиля -->
   <div id="modal-profile" class="modal-backdrop">
     <div class="modal-liquid-shell">
       <div class="modal-liquid-head">
-        <span>Кастомизация Nitro Nook</span>
+        <span>Кастомизация профиля</span>
         <button class="btn-liquid-close" onclick="_hideModal('modal-profile')">✕</button>
       </div>
       <div class="modal-liquid-body">
         <div style="display:flex; flex-direction:column; align-items:center; gap:10px; margin-bottom:14px;">
-          <div id="profile-edit-frame-wrap" style="position:relative; width:80px; height:80px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
-            <img id="profile-edit-preview" style="width:70px; height:70px; border-radius:50%; object-fit:cover; background:#1c1c1e;">
+          <div id="profile-edit-frame-wrap" style="position:relative; width:78px; height:78px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+            <img id="profile-edit-preview" style="width:68px; height:68px; border-radius:50%; object-fit:cover; background:#1c1c1e;">
           </div>
           <label class="btn-pick-liquid">
             <span>Выбрать фото аватарки</span>
@@ -397,55 +384,75 @@
           </label>
         </div>
 
+        <!-- 1. ТЕМЫ ПРИЛОЖЕНИЯ -->
+        <div class="liquid-input-field">
+          <label>Тема оформления приложения</label>
+          <select id="edit-app-theme" onchange="_applyAppTheme(this.value)">
+            <option value="theme-oled">🌑 OLED Black (Классика)</option>
+            <option value="theme-cyber">💜 Cyberpunk Neon (Неон)</option>
+            <option value="theme-space">🌌 Deep Space (Глубокий Космос)</option>
+            <option value="theme-crimson">🩸 Crimson Blood (Кровавый закат)</option>
+            <option id="opt-admin-theme" value="theme-gold-hq" style="display:none; color:#ffd700; font-weight:900;">👑 HQ Gold Matrix (Эксклюзив)</option>
+          </select>
+        </div>
+
         <div class="liquid-input-field">
           <label>О себе (Bio)</label>
           <input type="text" id="edit-bio" placeholder="Краткий статус">
         </div>
 
-        <!-- 1. РАМКИ АВАТАРОК -->
+        <!-- 2. РАМКИ АВАТАРОК -->
         <div class="liquid-input-field">
-          <label>Рамка аватарки (Frame)</label>
+          <label>Рамка аватарки</label>
           <select id="edit-avatar-frame" onchange="_updateLivePreviewFrame()">
             <option value="frame-none">Без рамки</option>
             <option value="frame-neon">Неоновый пульс (Cyan)</option>
-            <option value="frame-cyber">Киберпанк (Cyber Dash)</option>
+            <option value="frame-cyber">Киберпанк (Rose Dash)</option>
             <option value="frame-fire">Адское пламя (Fire)</option>
             <option value="frame-ice">Арктический лед (Ice)</option>
             <option value="frame-gold">Чистое золото (Gold)</option>
-            <!-- Секретная рамка админа -->
-            <option id="opt-admin-frame" value="frame-matrix-hq" style="display:none; color:#10b981; font-weight:900;">👑 СЕКРЕТ HQ: Тёмная Матрица</option>
+            <option id="opt-admin-frame" value="frame-matrix-hq" style="display:none; color:#10b981; font-weight:900;">👑 HQ: Тёмная Матрица</option>
           </select>
         </div>
 
-        <!-- 2. ПОСТЕРЫ/БАННЕРЫ -->
+        <!-- 3. ПОСТЕРЫ (10+ для админов) -->
         <div class="liquid-input-field">
-          <label>Постер шапки профиля (Banner)</label>
+          <label>Постер шапки профиля</label>
           <select id="edit-banner-url">
             <option value="banner-cyber">Кибер Сити (Cyber City)</option>
-            <option value="banner-space">Глубокий Космос (Deep Space)</option>
+            <option value="banner-space">Глубокий Космос (Space)</option>
             <option value="banner-synth">Синтвейв Неон (Synthwave)</option>
             <option value="banner-sunset">Ночной Закат (Sunset)</option>
-            <!-- Секретный постер админа -->
-            <option id="opt-admin-banner" value="banner-darkmatter-hq" style="display:none; color:#10b981; font-weight:900;">👑 СЕКРЕТ HQ: Dark Matter Void</option>
+            <!-- 10 админских постеров -->
+            <optgroup id="optgroup-admin-banners" label="👑 10 Эксклюзивов HQ" style="display:none; color:#10b981;">
+              <option value="b-hq-1">👑 1. Dark Matter Void</option>
+              <option value="b-hq-2">👑 2. Prism Spectrum</option>
+              <option value="b-hq-3">👑 3. Alpine Cosmic Night</option>
+              <option value="b-hq-4">👑 4. Quantum Earth Core</option>
+              <option value="b-hq-5">👑 5. Hyperdrive Portal</option>
+              <option value="b-hq-6">👑 6. Emerald Cyber Grid</option>
+              <option value="b-hq-7">👑 7. Terminal Code Matrix</option>
+              <option value="b-hq-8">👑 8. Aurora Borealis 4K</option>
+              <option value="b-hq-9">👑 9. Red Alert Nebula</option>
+              <option value="b-hq-10">👑 10. Singularity Obsidian</option>
+            </optgroup>
           </select>
         </div>
 
-        <!-- 3. ЦВЕТ ТЕКСТА НИКНЕЙМА -->
+        <!-- 4. ЦВЕТ НИКА БЕЗ СЛОМАННЫХ ПЛАШЕК -->
         <div class="liquid-input-field">
           <label>Цвет никнейма</label>
           <select id="edit-name-color">
-            <option value="#ffffff">Классический белый (#fff)</option>
+            <option value="#ffffff">Классический белый</option>
             <option value="#00f0ff">Кибер-Циан (#00f0ff)</option>
-            <option value="#ff007a">Неоновый розовый (#ff007a)</option>
-            <option value="#30d158">Лаймовый (#30d158)</option>
-            <option value="#ffd60a">Золотой люкс (#ffd60a)</option>
-            <option value="#bf5af2">Фиолетовый аметист (#bf5af2)</option>
-            <!-- Секретный цвет админа -->
-            <option id="opt-admin-color" value="linear-gold" style="display:none; color:#ffd700; font-weight:900;">👑 СЕКРЕТ HQ: Имперское жидкое золото</option>
+            <option value="#ff007a">Неоновый розовый</option>
+            <option value="#30d158">Лаймовый</option>
+            <option value="#ffd700">Имперское золото (#ffd700)</option>
+            <option value="#bf5af2">Аметист</option>
           </select>
         </div>
 
-        <!-- 4. ЭФФЕКТЫ ТЕКСТА -->
+        <!-- 5. ЭФФЕКТЫ НИКА -->
         <div class="liquid-input-field">
           <label>Эффект текста никнейма</label>
           <select id="edit-name-effect">
@@ -454,12 +461,11 @@
             <option value="fx-glitch">Кибер-глитч (Glitch)</option>
             <option value="fx-fire">Огненная аура (Flame)</option>
             <option value="fx-rainbow">Радужный градиент (Chroma)</option>
-            <!-- Секретный эффект админа -->
-            <option id="opt-admin-fx" value="fx-hologram-god" style="display:none; color:#ffd700; font-weight:900;">👑 СЕКРЕТ HQ: Голограмма Создателя</option>
+            <option id="opt-admin-fx" value="fx-hologram-god" style="display:none; color:#ffd700; font-weight:900;">👑 HQ: Голограмма Создателя</option>
           </select>
         </div>
 
-        <!-- 5. МУЗЫКА -->
+        <!-- 6. МУЗЫКА -->
         <div class="liquid-input-field">
           <label>Музыка (Яндекс Музыка или Spotify)</label>
           <select id="edit-music-type" onchange="_onMusicTypeChange()">
@@ -470,13 +476,12 @@
         </div>
 
         <div id="music-field-input" class="liquid-input-field" style="display:none;">
-          <label id="music-input-label">Ссылка на трек</label>
-          <input type="text" id="edit-music-url" placeholder="Вставьте ссылку на песню">
+          <input type="text" id="edit-music-url" placeholder="Ссылка на трек">
         </div>
 
-        <button class="btn-liquid-main btn-liquid-outline" onclick="_previewOwnProfile()">Предпросмотр профиля</button>
-        <button class="btn-liquid-main" onclick="_saveProfile()">Сохранить стиль</button>
-        <button class="btn-liquid-main btn-liquid-outline" style="color:var(--danger); margin-top:12px;" onclick="_signOut()">Выйти</button>
+        <button class="btn-liquid-main btn-liquid-outline" onclick="_previewOwnProfile()">Посмотреть свой профиль</button>
+        <button class="btn-liquid-main" onclick="_saveProfile()">Сохранить настройки</button>
+        <button class="btn-liquid-main btn-liquid-outline" style="color:var(--danger); margin-top:12px;" onclick="_signOut()">Выйти из профиля</button>
       </div>
     </div>
   </div>
@@ -492,27 +497,6 @@
       <div style="padding:12px; border-top:1px solid var(--liquid-border); display:flex; gap:8px;">
         <input type="text" id="chat-input-text" placeholder="Сообщение..." style="flex:1; background:rgba(255,255,255,0.06); border:1px solid var(--liquid-border); border-radius:var(--radius-pill); padding:10px 14px; color:#fff; outline:none; font-size:14px;">
         <button class="btn-liquid-main" style="width:auto; margin:0; padding:10px 16px;" onclick="_sendDirectMessage()">➤</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- МОДАЛКА: Создание Группы -->
-  <div id="modal-create-group" class="modal-backdrop">
-    <div class="modal-liquid-shell">
-      <div class="modal-liquid-head">
-        <span>Новая группа</span>
-        <button class="btn-liquid-close" onclick="_hideModal('modal-create-group')">✕</button>
-      </div>
-      <div class="modal-liquid-body">
-        <div class="liquid-input-field">
-          <label>Название группы</label>
-          <input type="text" id="new-group-name" placeholder="Название беседы">
-        </div>
-        <div class="liquid-input-field">
-          <label>Описание</label>
-          <input type="text" id="new-group-desc" placeholder="Краткое описание">
-        </div>
-        <button class="btn-liquid-main" onclick="_submitCreateGroup()">Создать группу</button>
       </div>
     </div>
   </div>
@@ -546,11 +530,9 @@
 
     let _cu = null, _up = null;
     let _activeChatPeerId = null;
-    let _activeGroupId = null;
     let _modalTargetUserId = null;
     let _postAttachedBase64 = null;
     let _tempAvatarBase64 = null;
-    let _realtimeChannel = null;
 
     function _toast(m) {
       const b = document.getElementById('toast-box');
@@ -569,30 +551,33 @@
     function b58Encode(str) { return btoa(encodeURIComponent(str)); }
     function b58Decode(str) { try { return decodeURIComponent(atob(str)); } catch(e) { return str; } }
 
+    function _applyAppTheme(themeClass) {
+      document.body.className = themeClass || 'theme-oled';
+    }
+
+    /* Чистое применение цвета и эффектов БЕЗ желтых плашек */
+    function _applyNitroTypography(elem, color, effect) {
+      if (!elem) return;
+      elem.className = '';
+      elem.style.background = 'none';
+      elem.style.webkitBackgroundClip = 'unset';
+      elem.style.webkitTextFillColor = 'unset';
+      elem.style.color = color || '#ffffff';
+
+      if (effect && effect !== 'fx-none') {
+        elem.classList.add(effect);
+      }
+    }
+
     function _switchView(t, e) {
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
       document.getElementById('view-' + t).classList.add('active');
       if (e && e.currentTarget) e.currentTarget.classList.add('active');
 
-      if (t === 'chats') _loadChatsAndGroups();
+      if (t === 'chats') _loadChats();
       if (t === 'feed') _loadFeedPosts();
       if (t === 'search') _loadAllUsersForSearch('');
-    }
-
-    function _switchChatTab(tab) {
-      const directBtn = document.getElementById('subtab-direct');
-      const groupsBtn = document.getElementById('subtab-groups');
-      const directList = document.getElementById('direct-chats-list');
-      const groupsList = document.getElementById('groups-chats-list');
-
-      if (tab === 'direct') {
-        directBtn.classList.add('active'); groupsBtn.classList.remove('active');
-        directList.style.display = 'flex'; groupsList.style.display = 'none';
-      } else {
-        groupsBtn.classList.add('active'); directBtn.classList.remove('active');
-        directList.style.display = 'none'; groupsList.style.display = 'flex';
-      }
     }
 
     function _showModal(id) { document.getElementById(id).style.display = 'flex'; }
@@ -607,28 +592,7 @@
       if (id === 'modal-direct-chat') _activeChatPeerId = null;
     }
 
-    /* Применение стилей Nitro (Цвет, Эффект, Жирность) */
-    function _applyNitroTypography(elem, color, effect) {
-      if (!elem) return;
-      elem.className = '';
-      elem.style.color = '#ffffff';
-
-      if (color === 'linear-gold') {
-        elem.style.background = 'linear-gradient(135deg, #fff275, #ffd700, #ffae19)';
-        elem.style.webkitBackgroundClip = 'text';
-        elem.style.webkitTextFillColor = 'transparent';
-      } else if (color) {
-        elem.style.webkitBackgroundClip = 'unset';
-        elem.style.webkitTextFillColor = 'unset';
-        elem.style.color = color;
-      }
-
-      if (effect && effect !== 'fx-none') {
-        elem.classList.add(effect);
-      }
-    }
-
-    /* АВТОРИЗАЦИЯ + ПРОВЕРКА БАНОВ */
+    /* АВТОРИЗАЦИЯ */
     async function _authActionCustom(type) {
       const u = document.getElementById('auth-login').value.trim().toLowerCase();
       const p = document.getElementById('auth-pass').value.trim();
@@ -659,18 +623,11 @@
           return _toast('Неверный логин или пароль');
         }
 
-        // Проверка бана
         if (user.is_banned) {
-          if (user.banned_until) {
-            const until = new Date(user.banned_until);
-            if (new Date() < until) {
-              return _toast(`Аккаунт заблокирован до ${until.toLocaleString()}. Причина: ${user.ban_reason || 'Нарушение'}`);
-            } else {
-              // Срок временного бана истек -> разбаниваем
-              await _0xdb.from('profiles').update({ is_banned: false, banned_until: null }).eq('id', user.id);
-            }
-          } else {
-            return _toast(`Аккаунт заблокирован НАВСЕГДА. Причина: ${user.ban_reason || 'Нарушение'}`);
+          if (user.banned_until && new Date() < new Date(user.banned_until)) {
+            return _toast(`Аккаунт временно заблокирован до ${new Date(user.banned_until).toLocaleString()}`);
+          } else if (!user.banned_until) {
+            return _toast('Аккаунт заблокирован НАВСЕГДА');
           }
         }
 
@@ -684,25 +641,26 @@
     async function _syncUser() {
       const savedUserId = localStorage.getItem('nook_current_user_id');
       if (!savedUserId) {
-        document.getElementById('user-display').innerText = 'Вход';
-        document.getElementById('badge-verified').style.display = 'none';
-        document.getElementById('user-avatar-img').style.display = 'none';
-        document.getElementById('user-avatar-placeholder').style.display = 'flex';
-        document.getElementById('nav-btn-admin').style.display = 'none';
-        _cu = null; _up = null; return;
+        _resetUIForGuest();
+        return;
       }
 
       const { data: p } = await _0xdb.from('profiles').select('*').eq('id', savedUserId).maybeSingle();
-      if (!p) { localStorage.removeItem('nook_current_user_id'); return _syncUser(); }
+      if (!p) {
+        localStorage.removeItem('nook_current_user_id');
+        _resetUIForGuest();
+        return;
+      }
 
       _cu = { id: p.id };
       _up = p;
+
+      _applyAppTheme(p.app_theme || 'theme-oled');
 
       const disp = document.getElementById('user-display');
       disp.innerText = `@${p.username}`;
       _applyNitroTypography(disp, p.name_color, p.name_effect);
 
-      // Рамка аватарки в шапке
       const frameWrap = document.getElementById('user-avatar-frame-wrap');
       frameWrap.className = p.avatar_frame || 'frame-none';
 
@@ -722,29 +680,45 @@
         pl.style.display = 'flex'; pl.innerText = p.username.charAt(0).toUpperCase();
       }
 
-      _loadChatsAndGroups();
+      _loadChats();
+    }
+
+    /* Полный сброс всех украшений при выходе */
+    function _resetUIForGuest() {
+      _cu = null; _up = null;
+      _applyAppTheme('theme-oled');
+      document.getElementById('user-display').innerText = 'Вход';
+      document.getElementById('user-display').className = '';
+      document.getElementById('user-display').style.color = '#ffffff';
+      document.getElementById('user-avatar-frame-wrap').className = 'frame-none';
+      document.getElementById('badge-verified').style.display = 'none';
+      document.getElementById('user-avatar-img').style.display = 'none';
+      document.getElementById('user-avatar-placeholder').style.display = 'flex';
+      document.getElementById('user-avatar-placeholder').innerText = 'N';
+      document.getElementById('nav-btn-admin').style.display = 'none';
+      document.getElementById('direct-chats-list').innerHTML = '';
     }
 
     function _openUserHub() {
       if (!_cu) return _showModal('modal-auth');
       document.getElementById('edit-bio').value = _up?.bio || '';
       document.getElementById('profile-edit-preview').src = _up?.avatar_url || '';
+      document.getElementById('edit-app-theme').value = _up?.app_theme || 'theme-oled';
       document.getElementById('edit-avatar-frame').value = _up?.avatar_frame || 'frame-none';
       document.getElementById('edit-banner-url').value = _up?.banner_url || 'banner-cyber';
       document.getElementById('edit-name-color').value = _up?.name_color || '#ffffff';
       document.getElementById('edit-name-effect').value = _up?.name_effect || 'fx-none';
 
-      // Разблокировка секретных админских предметов
       const isAdmin = _up?.is_admin === true;
+      document.getElementById('opt-admin-theme').style.display = isAdmin ? 'block' : 'none';
       document.getElementById('opt-admin-frame').style.display = isAdmin ? 'block' : 'none';
-      document.getElementById('opt-admin-banner').style.display = isAdmin ? 'block' : 'none';
-      document.getElementById('opt-admin-color').style.display = isAdmin ? 'block' : 'none';
+      document.getElementById('optgroup-admin-banners').style.display = isAdmin ? 'block' : 'none';
       document.getElementById('opt-admin-fx').style.display = isAdmin ? 'block' : 'none';
 
       document.getElementById('edit-music-type').value = _up?.music_type || 'none';
       _onMusicTypeChange();
       document.getElementById('edit-music-url').value = _up?.music_url || '';
-      
+
       _updateLivePreviewFrame();
       _tempAvatarBase64 = null;
       _showModal('modal-profile');
@@ -769,14 +743,12 @@
     function _onMusicTypeChange() {
       const val = document.getElementById('edit-music-type').value;
       const inputSlot = document.getElementById('music-field-input');
-      const label = document.getElementById('music-input-label');
       inputSlot.style.display = (val === 'yandex' || val === 'spotify') ? 'block' : 'none';
-      if (val === 'yandex') label.innerText = 'Ссылка на трек Яндекс Музыки';
-      if (val === 'spotify') label.innerText = 'Ссылка на трек Spotify';
     }
 
     async function _saveProfile() {
       const bio = document.getElementById('edit-bio').value.trim();
+      const theme = document.getElementById('edit-app-theme').value;
       const frame = document.getElementById('edit-avatar-frame').value;
       const banner = document.getElementById('edit-banner-url').value;
       const color = document.getElementById('edit-name-color').value;
@@ -786,6 +758,7 @@
 
       const updateData = {
         bio: bio,
+        app_theme: theme,
         avatar_frame: frame,
         banner_url: banner,
         name_color: color,
@@ -798,7 +771,7 @@
       const { error } = await _0xdb.from('profiles').update(updateData).eq('id', _cu.id);
       if (error) return _toast('Ошибка: ' + error.message);
 
-      _toast('Стиль Discord Nitro сохранен!');
+      _toast('Профиль сохранен!');
       _hideModal('modal-profile');
       _syncUser();
     }
@@ -811,21 +784,22 @@
     async function _signOut() {
       localStorage.removeItem('nook_current_user_id');
       _hideModal('modal-profile');
-      _syncUser();
+      _resetUIForGuest();
+      _loadFeedPosts();
       _toast('Вы вышли из системы');
     }
 
-    /* ПРОСМОТР ПРОФИЛЯ ПОЛЬЗОВАТЕЛЯ */
+    /* ОТКРЫТИЕ ЛЮБОГО ПРОФИЛЯ (РАБОТАЕТ ВСЕГДА) */
     async function _openUserProfile(userId) {
       _modalTargetUserId = userId;
       const { data: p } = await _0xdb.from('profiles').select('*').eq('id', userId).maybeSingle();
       if (!p) return _toast('Пользователь не найден');
 
-      // 1. Баннер
+      // 1. Постер
       const banner = document.getElementById('uv-banner');
       banner.className = `banner-preview ${p.banner_url || 'banner-cyber'}`;
 
-      // 2. Никнейм с эффектами Nitro
+      // 2. Четкий никнейм без заливок!
       const nameElem = document.getElementById('uv-username');
       nameElem.innerText = `@${p.username}`;
       _applyNitroTypography(nameElem, p.name_color, p.name_effect);
@@ -841,7 +815,7 @@
       if (p.is_verified) document.getElementById('uv-badge-verified').style.display = 'block';
       else document.getElementById('uv-badge-verified').style.display = 'none';
 
-      // 4. Музыка
+      // 4. Музыка (Яндекс / Spotify)
       const musicBox = document.getElementById('uv-music-container');
       const musicSlot = document.getElementById('uv-music-player-slot');
       musicSlot.innerHTML = '';
@@ -872,73 +846,18 @@
       _openDirectChat(_modalTargetUserId);
     }
 
-    /* АДМИНКА HQ: БАНЫ НАВСЕГДА И НА ВРЕМЯ */
-    async function _adminApplyUserBan(applyBan) {
-      const u = document.getElementById('admin-ban-username').value.trim().toLowerCase();
-      if (!u) return _toast('Введите юзернейм нарушителя');
-
-      const { data: user } = await _0xdb.from('profiles').select('id, is_admin').eq('username', u).maybeSingle();
-      if (!user) return _toast('Пользователь не найден');
-      if (user.is_admin) return _toast('Нельзя забанить администратора HQ!');
-
-      if (!applyBan) {
-        // Разбан
-        await _0xdb.from('profiles').update({ is_banned: false, banned_until: null, ban_reason: '' }).eq('id', user.id);
-        _toast(`Пользователь @${u} успешно разбанен!`);
-        document.getElementById('admin-ban-username').value = '';
-        return;
-      }
-
-      const dur = document.getElementById('admin-ban-duration').value;
-      const reason = document.getElementById('admin-ban-reason').value.trim() || 'Нарушение правил Nook';
-
-      let bannedUntil = null;
-      const now = new Date();
-      if (dur === '1h') bannedUntil = new Date(now.getTime() + 1 * 3600 * 1000);
-      if (dur === '24h') bannedUntil = new Date(now.getTime() + 24 * 3600 * 1000);
-      if (dur === '7d') bannedUntil = new Date(now.getTime() + 7 * 24 * 3600 * 1000);
-      if (dur === '30d') bannedUntil = new Date(now.getTime() + 30 * 24 * 3600 * 1000);
-
-      const { error } = await _0xdb.from('profiles').update({
-        is_banned: true,
-        banned_until: bannedUntil ? bannedUntil.toISOString() : null,
-        ban_reason: reason
-      }).eq('id', user.id);
-
-      if (error) return _toast('Ошибка: ' + error.message);
-      _toast(`@${u} заблокирован (${dur === 'perm' ? 'НАВСЕГДА' : dur})!`);
-      document.getElementById('admin-ban-username').value = '';
-    }
-
-    async function _adminToggleCountry(ban) {
-      const code = document.getElementById('admin-country-code').value.trim().toUpperCase();
-      if (!code) return _toast('Введите код страны');
-      if (ban) await _0xdb.from('banned_countries').insert({ country_code: code });
-      else await _0xdb.from('banned_countries').delete().eq('country_code', code);
-      _toast(`Страна ${code} обновлена`);
-      document.getElementById('admin-country-code').value = '';
-    }
-
-    async function _adminToggleVerify(status) {
-      const u = document.getElementById('admin-verify-username').value.trim().toLowerCase();
-      await _0xdb.from('profiles').update({ is_verified: status }).eq('username', u);
-      _toast(`Статус @${u} изменен`);
-      _syncUser();
-    }
-
-    /* ЧАТЫ И СООБЩЕНИЯ */
-    async function _loadChatsAndGroups() {
+    /* СПИСОК ЧАТОВ С ПЕРЕХОДОМ В ПРОФИЛЬ */
+    async function _loadChats() {
       if (!_cu) return;
       const directList = document.getElementById('direct-chats-list');
-      const { data: users } = await _0xdb.from('profiles').select('*').neq('id', _cu.id).limit(25);
+      const { data: users } = await _0xdb.from('profiles').select('*').neq('id', _cu.id).limit(30);
       directList.innerHTML = '';
       if (users) {
         users.forEach(u => {
           const item = document.createElement('div');
           item.className = 'chat-card-item';
-          item.onclick = () => _openDirectChat(u.id);
           item.innerHTML = `
-            <div style="display:flex; align-items:center; gap:12px;">
+            <div style="display:flex; align-items:center; gap:12px; flex:1;" onclick="_openDirectChat('${u.id}')">
               <div class="${u.avatar_frame || 'frame-none'}" style="width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
                 ${u.avatar_url ? `<img src="${u.avatar_url}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;">` : `<div style="font-weight:900;">${u.username.charAt(0).toUpperCase()}</div>`}
               </div>
@@ -947,6 +866,7 @@
                 <div style="font-size:12px; color:var(--muted);">${u.bio || 'Нажмите для беседы'}</div>
               </div>
             </div>
+            <button onclick="event.stopPropagation(); _openUserProfile('${u.id}')" style="background:none; border:none; color:var(--accent); font-size:12px; font-weight:800; cursor:pointer; padding:6px 10px;">Профиль</button>
           `;
           directList.appendChild(item);
           _applyNitroTypography(item.querySelector(`.user-item-${u.id}`), u.name_color, u.name_effect);
@@ -962,7 +882,7 @@
 
       _showModal('modal-direct-chat');
       const cont = document.getElementById('chat-messages-container');
-      cont.innerHTML = '<p style="color:var(--muted); font-size:12px; text-align:center;">Загрузка сообщений...</p>';
+      cont.innerHTML = '<p style="color:var(--muted); font-size:12px; text-align:center;">Загрузка...</p>';
 
       const { data: msgs } = await _0xdb.from('direct_messages')
         .select('*')
@@ -1018,7 +938,7 @@
                 <div style="font-size:11px; color:var(--muted);">${u.bio || 'Участник Nook'}</div>
               </div>
             </div>
-            <svg style="width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:2.2;" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+            <span style="color:var(--muted); font-size:12px;">Профиль ➔</span>
           `;
           cont.appendChild(item);
           _applyNitroTypography(item.querySelector(`.search-name-${u.id}`), u.name_color, u.name_effect);
@@ -1083,7 +1003,39 @@
       });
     }
 
-    // Инициализация
+    /* АДМИНКА */
+    async function _adminApplyUserBan(applyBan) {
+      const u = document.getElementById('admin-ban-username').value.trim().toLowerCase();
+      if (!u) return _toast('Введите юзернейм');
+      const { data: user } = await _0xdb.from('profiles').select('id, is_admin').eq('username', u).maybeSingle();
+      if (!user) return _toast('Пользователь не найден');
+      if (user.is_admin) return _toast('Нельзя забанить админа!');
+
+      if (!applyBan) {
+        await _0xdb.from('profiles').update({ is_banned: false, banned_until: null }).eq('id', user.id);
+        _toast(`@${u} разбанен!`);
+        return;
+      }
+
+      const dur = document.getElementById('admin-ban-duration').value;
+      let until = null;
+      const now = new Date();
+      if (dur === '1h') until = new Date(now.getTime() + 3600000);
+      if (dur === '24h') until = new Date(now.getTime() + 86400000);
+      if (dur === '7d') until = new Date(now.getTime() + 604800000);
+
+      await _0xdb.from('profiles').update({ is_banned: true, banned_until: until ? until.toISOString() : null }).eq('id', user.id);
+      _toast(`@${u} забанен (${dur})!`);
+    }
+
+    async function _adminToggleVerify(status) {
+      const u = document.getElementById('admin-verify-username').value.trim().toLowerCase();
+      await _0xdb.from('profiles').update({ is_verified: status }).eq('username', u);
+      _toast(`Статус @${u} изменен`);
+      _syncUser();
+    }
+
+    // Старт
     (async () => {
       _syncUser();
     })();
