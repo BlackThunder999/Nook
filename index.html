@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Nook Nitro 7.0</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg: #030305;
+      --liquid-card: rgba(18, 18, 26, 0.78);
+      --liquid-specular: linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.03) 45%, rgba(255, 255, 255, 0.08) 100%);
+      --liquid-border: rgba(255, 255, 255, 0.16);
+      --liquid-border-strong: rgba(255, 255, 255, 0.45);
+      --text: #ffffff;
+      --muted: #9ca3af;
+      --danger: #ff453a;
+      --success: #30d158;
+      --accent: #0a84ff;
+      --admin-gold: #ffd700;
+      --radius-2xl: 32px;
+      --radius-xl: 22px;
+      --radius-pill: 9999px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .ambient-glow {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(85px);
+      opacity: 0.28;
+      animation: floatOrb 18s ease-in-out infinite alternate;
+    }
+    .orb-1 { width: 400px; height: 400px; background: radial-gradient(circle, #ffffff, #6366f1); top: -100px; left: 10%; }
+    .orb-2 { width: 440px; height: 440px; background: radial-gradient(circle, #ec4899, #3b82f6); bottom: -120px; right: -60px; animation-duration: 22s; }
+    @keyframes floatOrb {
+      0% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(40px, 30px) scale(1.1); }
+      100% { transform: translate(-30px, 50px) scale(0.95); }
+    }
+
+    header {
+      position: relative;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      background: rgba(12, 12, 16, 0.78);
+      backdrop-filter: blur(40px);
+      -webkit-backdrop-filter: blur(40px);
+      border-bottom: 1px solid var(--liquid-border);
+    }
+    .brand-wrap { display: flex; align-items: center; gap: 8px; }
+    .brand-logo { font-weight: 900; font-size: 22px; letter-spacing: -0.05em; color: #fff; text-shadow: 0 0 20px rgba(255,255,255,0.4); }
+    .brand-tag { font-size: 9px; font-weight: 900; color: #000; background: #fff; padding: 2px 7px; border-radius: var(--radius-pill); box-shadow: 0 0 10px rgba(255,255,255,0.4); }
+
+    .user-pill-liquid {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 800;
+      background: var(--liquid-specular);
+      backdrop-filter: blur(20px);
+      padding: 5px 12px 5px 5px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--liquid-border);
+      cursor: pointer;
+    }
+    .user-avatar-round {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #1e1e24;
+      object-fit: cover;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .verified-icon { width: 15px; height: 15px; fill: #fff; display: none; }
+
+    main { flex: 1; overflow: hidden; position: relative; z-index: 10; }
+    .view { display: none; height: 100%; }
+    .view.active { display: flex; }
+
+    /* ================= СТИЛИ DISCORD NITRO ================= */
+    /* Рамки аватарок */
+    .frame-none { border: 2px solid transparent; }
+    .frame-neon { border: 3px solid #00f0ff; box-shadow: 0 0 16px #00f0ff, inset 0 0 8px #00f0ff; }
+    .frame-cyber { border: 3px solid #f43f5e; box-shadow: 0 0 18px #f43f5e; border-style: dashed; animation: rotateBorder 12s linear infinite; }
+    .frame-fire { border: 3px solid #ff7b00; box-shadow: 0 0 20px #ff3700; }
+    .frame-ice { border: 3px solid #7dd3fc; box-shadow: 0 0 18px #38bdf8; }
+    .frame-gold { border: 3px solid #fbbf24; box-shadow: 0 0 20px rgba(251, 191, 36, 0.8); }
+    /* Секретная рамка админа */
+    .frame-matrix-hq { border: 3px solid #10b981; box-shadow: 0 0 25px #059669, 0 0 40px rgba(16, 185, 129, 0.6); animation: matrixPulse 2s infinite alternate; }
+    @keyframes matrixPulse { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(60deg); } }
+    @keyframes rotateBorder { 100% { transform: rotate(360deg); } }
+
+    /* Эффекты текста (Никнеймы) */
+    .fx-none {}
+    .fx-neon { text-shadow: 0 0 8px currentColor, 0 0 20px currentColor; }
+    .fx-glitch { animation: glitchText 1.5s infinite; }
+    .fx-fire { text-shadow: 0 0 6px #ff7b00, 0 -2px 10px #ff3700, 0 -4px 18px #ef4444; }
+    .fx-rainbow { background: linear-gradient(90deg, #ff007a, #7928ca, #0070f3, #00dfd8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: rainbowShift 4s linear infinite; background-size: 300%; }
+    /* Секретный эффект создателя */
+    .fx-hologram-god { background: linear-gradient(135deg, #fff, #fbbf24, #10b981, #38bdf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 0 20px rgba(251,191,36,0.8); animation: godPulse 3s infinite; }
+    @keyframes rainbowShift { 0% { background-position: 0% 50%; } 100% { background-position: 100% 50%; } }
+    @keyframes glitchText { 0% { transform: skew(0deg); } 20% { transform: skew(-3deg); } 40% { transform: skew(3deg); } 60% { transform: skew(-1deg); } 100% { transform: skew(0deg); } }
+    @keyframes godPulse { 0%, 100% { filter: drop-shadow(0 0 8px rgba(255,215,0,0.8)); } 50% { filter: drop-shadow(0 0 20px rgba(16,185,129,0.9)); } }
+
+    /* Постеры шапки профиля */
+    .banner-preview {
+      width: 100%; height: 110px; border-radius: var(--radius-xl) var(--radius-xl) 0 0; background-size: cover; background-position: center; position: relative;
+    }
+    .banner-cyber { background-image: linear-gradient(180deg, rgba(0,0,0,0.2), rgba(18,18,26,1)), url('https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80'); }
+    .banner-space { background-image: linear-gradient(180deg, rgba(0,0,0,0.2), rgba(18,18,26,1)), url('https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=800&q=80'); }
+    .banner-synth { background-image: linear-gradient(180deg, rgba(0,0,0,0.2), rgba(18,18,26,1)), url('https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=800&q=80'); }
+    .banner-sunset { background-image: linear-gradient(180deg, rgba(0,0,0,0.2), rgba(18,18,26,1)), url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80'); }
+    .banner-darkmatter-hq { background-image: linear-gradient(180deg, rgba(0,0,0,0.3), rgba(18,18,26,1)), url('https://images.unsplash.com/photo-1534447677768-be436bb09401?w=800&q=80'); filter: contrast(130%); }
+
+    /* ================= ЭКРАНЫ ================= */
+    #view-chats { flex-direction: column; height: 100%; padding: 16px; overflow-y: auto; gap: 14px; }
+    .chat-subtabs { display: flex; gap: 8px; background: rgba(255,255,255,0.06); padding: 4px; border-radius: var(--radius-pill); border: 1px solid var(--liquid-border); }
+    .chat-subtab-btn { flex: 1; background: transparent; border: none; color: var(--muted); font-size: 13px; font-weight: 800; padding: 8px 12px; border-radius: var(--radius-pill); cursor: pointer; }
+    .chat-subtab-btn.active { background: #fff; color: #000; }
+    .chat-card-item { display: flex; align-items: center; justify-content: space-between; background: var(--liquid-card); border: 1px solid var(--liquid-border); padding: 14px 16px; border-radius: var(--radius-xl); cursor: pointer; }
+
+    #view-feed { flex-direction: column; height: 100%; overflow-y: auto; padding: 16px; gap: 14px; }
+    .liquid-composer-box { background: var(--liquid-card); backdrop-filter: blur(35px); border: 1px solid var(--liquid-border); border-radius: var(--radius-2xl); padding: 16px; }
+    .composer-textarea { width: 100%; background: transparent; border: none; color: #fff; font-size: 15px; font-weight: 600; outline: none; resize: none; min-height: 54px; }
+    .composer-bottom-bar { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--liquid-border); padding-top: 12px; }
+    .btn-pick-liquid { display: flex; align-items: center; gap: 6px; color: #fff; font-size: 13px; font-weight: 800; cursor: pointer; background: rgba(255, 255, 255, 0.08); border: 1px solid var(--liquid-border); padding: 8px 14px; border-radius: var(--radius-pill); }
+    .btn-publish-liquid { background: #ffffff; color: #000000; border: none; padding: 10px 22px; border-radius: var(--radius-pill); font-weight: 900; font-size: 14px; cursor: pointer; }
+
+    .liquid-post-card { background: var(--liquid-card); backdrop-filter: blur(35px); border: 1px solid var(--liquid-border); border-radius: var(--radius-2xl); padding: 18px; position: relative; }
+    .post-num-badge { position: absolute; top: 16px; right: 16px; font-size: 11px; font-weight: 900; background: rgba(255, 255, 255, 0.1); padding: 3px 9px; border-radius: var(--radius-pill); border: 1px solid var(--liquid-border); }
+    .post-author-row { display: flex; align-items: center; gap: 10px; font-size: 15px; margin-bottom: 10px; cursor: pointer; }
+    .post-avatar-img { width: 34px; height: 34px; border-radius: 50%; background: #1c1c1e; object-fit: cover; }
+    .post-body-text { font-size: 15px; font-weight: 500; color: #f3f4f6; line-height: 1.45; }
+    .post-attached-image { margin-top: 12px; width: 100%; border-radius: var(--radius-xl); border: 1px solid var(--liquid-border); object-fit: cover; display: block; }
+    .post-action-bar { display: flex; align-items: center; gap: 16px; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+    .post-btn-action { display: flex; align-items: center; gap: 6px; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 13px; font-weight: 800; }
+    .post-btn-action svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.2; }
+
+    #view-search { flex-direction: column; padding: 16px; overflow-y: auto; gap: 12px; }
+    .search-input-box { background: var(--liquid-card); border: 1px solid var(--liquid-border); border-radius: var(--radius-xl); padding: 12px 16px; display: flex; align-items: center; gap: 10px; }
+    .search-input-box input { flex: 1; background: transparent; border: none; color: #fff; font-size: 15px; font-weight: 700; outline: none; }
+    .search-result-item { display: flex; align-items: center; justify-content: space-between; background: var(--liquid-card); border: 1px solid var(--liquid-border); padding: 12px 14px; border-radius: var(--radius-xl); cursor: pointer; }
+
+    #view-admin { flex-direction: column; padding: 16px; overflow-y: auto; gap: 14px; }
+    .admin-liquid-card { background: var(--liquid-card); border: 1px solid var(--liquid-border); border-radius: var(--radius-2xl); padding: 18px; }
+
+    footer { position: relative; z-index: 50; display: flex; flex-direction: column; padding: 0 16px 12px; gap: 6px; }
+    nav { display: flex; align-items: center; background: rgba(14, 14, 18, 0.85); border: 1px solid var(--liquid-border); backdrop-filter: blur(40px); border-radius: var(--radius-pill); padding: 10px 14px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7); }
+    .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 11px; font-weight: 800; }
+    .nav-btn.active { color: #fff; }
+    .nav-btn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2.2; }
+
+    .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(30px); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
+    .modal-liquid-shell { background: rgba(18, 18, 24, 0.94); border: 1px solid var(--liquid-border-strong); backdrop-filter: blur(45px); border-radius: var(--radius-2xl); width: 100%; max-width: 400px; overflow: hidden; box-shadow: 0 24px 70px rgba(0, 0, 0, 0.9); }
+    .modal-liquid-head { padding: 16px 20px; border-bottom: 1px solid var(--liquid-border); display: flex; align-items: center; justify-content: space-between; font-weight: 900; font-size: 16px; }
+    .modal-liquid-body { padding: 20px; max-height: 74dvh; overflow-y: auto; font-size: 14px; }
+    .liquid-input-field { margin-bottom: 12px; }
+    .liquid-input-field label { display: block; font-size: 11px; font-weight: 800; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; }
+    .liquid-input-field input, .liquid-input-field select { width: 100%; background: rgba(255, 255, 255, 0.06); border: 1px solid var(--liquid-border); border-radius: var(--radius-xl); padding: 12px 14px; color: #fff; font-size: 14px; font-weight: 700; outline: none; }
+    .liquid-input-field select option { background: #14141a; color: #fff; }
+    .btn-liquid-main { width: 100%; background: #ffffff; color: #000000; border: none; padding: 13px; border-radius: var(--radius-pill); font-weight: 900; font-size: 14px; cursor: pointer; margin-top: 6px; }
+    .btn-liquid-outline { background: transparent; border: 1px solid var(--liquid-border); color: #fff; }
+    .btn-liquid-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; font-weight: 900; }
+
+    .msg-bubble { max-width: 78%; padding: 10px 14px; border-radius: 18px; font-size: 14px; line-height: 1.4; word-break: break-word; margin-bottom: 6px; }
+    .msg-bubble.outgoing { background: var(--accent); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .msg-bubble.incoming { background: rgba(255,255,255,0.08); border: 1px solid var(--liquid-border); align-self: flex-start; border-bottom-left-radius: 4px; }
+
+    #toast-box { position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%); z-index: 300; display: flex; flex-direction: column; gap: 6px; pointer-events: none; width: 90%; max-width: 320px; }
+    .toast-liquid { background: rgba(24, 24, 30, 0.96); border: 1px solid var(--liquid-border-strong); backdrop-filter: blur(25px); padding: 12px 18px; border-radius: var(--radius-pill); font-size: 13px; font-weight: 800; color: #fff; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <div class="ambient-glow">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+  </div>
+
+  <div id="toast-box"></div>
+
+  <header>
+    <div class="brand-wrap">
+      <div class="brand-logo">NOOK</div>
+      <div class="brand-tag">NITRO 7.0</div>
+    </div>
+    <div class="user-pill-liquid" onclick="_openUserHub()">
+      <div id="user-avatar-frame-wrap" style="position:relative; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+        <img id="user-avatar-img" class="user-avatar-round" style="display:none; width:26px; height:26px;" />
+        <div id="user-avatar-placeholder" class="user-avatar-round" style="width:26px; height:26px;">N</div>
+      </div>
+      <span id="user-display">Вход</span>
+      <svg id="badge-verified" class="verified-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+    </div>
+  </header>
+
+  <main>
+    <!-- ЭКРАН: ЧАТЫ -->
+    <section id="view-chats" class="view active">
+      <div class="chat-subtabs">
+        <button id="subtab-direct" class="chat-subtab-btn active" onclick="_switchChatTab('direct')">Личные чаты</button>
+        <button id="subtab-groups" class="chat-subtab-btn" onclick="_switchChatTab('groups')">Группы</button>
+      </div>
+
+      <div id="direct-chats-list" style="display:flex; flex-direction:column; gap:10px;"></div>
+      
+      <div id="groups-chats-list" style="display:none; flex-direction:column; gap:10px;">
+        <button class="btn-liquid-main" style="margin-bottom:8px;" onclick="_showModal('modal-create-group')">+ Создать новую группу</button>
+        <div id="groups-container" style="display:flex; flex-direction:column; gap:10px;"></div>
+      </div>
+    </section>
+
+    <!-- ЭКРАН: ЛЕНТА ПОСТОВ -->
+    <section id="view-feed" class="view">
+      <div class="liquid-composer-box">
+        <textarea id="feed-post-text" class="composer-textarea" placeholder="Что нового?"></textarea>
+        
+        <div class="composer-bottom-bar">
+          <label class="btn-pick-liquid">
+            <svg style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.2;" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            <span>Фото</span>
+            <input type="file" id="feed-photo-picker" accept="image/*" style="display:none;" onchange="_handlePostPhotoSelect(event)">
+          </label>
+          <button class="btn-publish-liquid" id="btn-post-submit" onclick="_sendFeedPost()">Опубликовать</button>
+        </div>
+      </div>
+
+      <div id="feed-stream" style="display:flex; flex-direction:column; gap:14px;"></div>
+    </section>
+
+    <!-- ЭКРАН: ПОИСК ПОЛЬЗОВАТЕЛЕЙ -->
+    <section id="view-search" class="view">
+      <div class="search-input-box">
+        <svg style="width:18px;height:18px;stroke:var(--muted);fill:none;stroke-width:2.2;" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Поиск по юзернейму..." oninput="_handleSearchInput(event)">
+      </div>
+      <div id="search-results-container" style="display:flex; flex-direction:column; gap:8px;"></div>
+    </section>
+
+    <!-- ЭКРАН: HQ АДМИН (БАНЫ + УПРАВЛЕНИЕ) -->
+    <section id="view-admin" class="view">
+      <!-- Новая расширенная система банов -->
+      <div class="admin-liquid-card">
+        <h3>Модерация аккаунтов (Бан / Разбан)</h3>
+        <p style="color:var(--muted); font-size:12px; margin-bottom:10px;">Блокировка доступа на время или навсегда.</p>
+        
+        <div class="liquid-input-field">
+          <label>Юзернейм нарушителя</label>
+          <input type="text" id="admin-ban-username" placeholder="Логин нарушителя">
+        </div>
+
+        <div class="liquid-input-field">
+          <label>Срок блокировки</label>
+          <select id="admin-ban-duration">
+            <option value="perm">Навсегда (Permanent)</option>
+            <option value="1h">На 1 час</option>
+            <option value="24h">На 24 часа</option>
+            <option value="7d">На 7 дней</option>
+            <option value="30d">На 30 дней</option>
+          </select>
+        </div>
+
+        <div class="liquid-input-field">
+          <label>Причина бана</label>
+          <input type="text" id="admin-ban-reason" placeholder="Нарушение правил платформы">
+        </div>
+
+        <div style="display:flex; gap:8px;">
+          <button class="btn-liquid-main" style="background:var(--danger); color:#fff;" onclick="_adminApplyUserBan(true)">Выдать бан</button>
+          <button class="btn-liquid-main btn-liquid-outline" onclick="_adminApplyUserBan(false)">Снять бан</button>
+        </div>
+      </div>
+
+      <div class="admin-liquid-card">
+        <h3>Геоблокировка стран</h3>
+        <div class="liquid-input-field">
+          <input type="text" id="admin-country-code" placeholder="Код страны (UA, US...)" maxlength="2" style="text-transform:uppercase;">
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-liquid-main" style="background:var(--danger); color:#fff;" onclick="_adminToggleCountry(true)">Забанить</button>
+          <button class="btn-liquid-main btn-liquid-outline" onclick="_adminToggleCountry(false)">Разбанить</button>
+        </div>
+      </div>
+
+      <div class="admin-liquid-card">
+        <h3>Верификация (Галочка)</h3>
+        <div class="liquid-input-field">
+          <input type="text" id="admin-verify-username" placeholder="Юзернейм">
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-liquid-main" style="background:var(--success); color:#fff;" onclick="_adminToggleVerify(true)">Выдать</button>
+          <button class="btn-liquid-main btn-liquid-outline" onclick="_adminToggleVerify(false)">Снять</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <nav>
+      <button class="nav-btn active" onclick="_switchView('chats', event)">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Чаты</span>
+      </button>
+      <button class="nav-btn" onclick="_switchView('feed', event)">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+        <span>Лента</span>
+      </button>
+      <button class="nav-btn" onclick="_switchView('search', event)">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span>Поиск</span>
+      </button>
+      <button id="nav-btn-admin" class="nav-btn" style="display:none;" onclick="_switchView('admin', event)">
+        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>HQ</span>
+      </button>
+    </nav>
+  </footer>
+
+  <!-- МОДАЛКА: Просмотр профиля (Красивый баннер + Рамка + Стиль Nitro) -->
+  <div id="modal-user-view" class="modal-backdrop">
+    <div class="modal-liquid-shell">
+      <div class="banner-preview banner-cyber" id="uv-banner"></div>
+      <div class="modal-liquid-body" style="padding-top:0; margin-top:-42px;">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:8px; padding-bottom:14px; border-bottom:1px solid var(--liquid-border);">
+          <div id="uv-avatar-frame-box" style="position:relative; width:84px; height:84px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+            <img id="uv-avatar" style="width:74px; height:74px; border-radius:50%; object-fit:cover; background:#1c1c1e;">
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <h3 id="uv-username" style="font-size:18px;">@user</h3>
+            <svg id="uv-badge-verified" class="verified-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+          </div>
+          <div id="uv-bio" style="font-size:13px; color:var(--muted); text-align:center;"></div>
+          
+          <div id="uv-music-container" style="width:100%; display:none; background:rgba(255,255,255,0.05); padding:10px; border-radius:var(--radius-xl); border:1px solid var(--liquid-border); margin-top:6px;">
+            <div style="font-size:10px; font-weight:800; color:var(--muted); margin-bottom:6px; text-transform:uppercase;">Трек профиля</div>
+            <div id="uv-music-player-slot"></div>
+          </div>
+
+          <div id="uv-action-btns" style="display:flex; gap:8px; width:100%; margin-top:8px;">
+            <button id="uv-chat-btn" class="btn-liquid-main" style="flex:1; padding:9px;" onclick="_openChatModalFromProfile()">Написать сообщение</button>
+          </div>
+        </div>
+        <button class="btn-liquid-main btn-liquid-outline" style="margin-top:12px;" onclick="_hideModal('modal-user-view')">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- МОДАЛКА: Настройки своего профиля (Nitro Studio + Секретки админа) -->
+  <div id="modal-profile" class="modal-backdrop">
+    <div class="modal-liquid-shell">
+      <div class="modal-liquid-head">
+        <span>Кастомизация Nitro Nook</span>
+        <button class="btn-liquid-close" onclick="_hideModal('modal-profile')">✕</button>
+      </div>
+      <div class="modal-liquid-body">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:10px; margin-bottom:14px;">
+          <div id="profile-edit-frame-wrap" style="position:relative; width:80px; height:80px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+            <img id="profile-edit-preview" style="width:70px; height:70px; border-radius:50%; object-fit:cover; background:#1c1c1e;">
+          </div>
+          <label class="btn-pick-liquid">
+            <span>Выбрать фото аватарки</span>
+            <input type="file" id="avatar-file-picker" accept="image/*" style="display:none;" onchange="_handleAvatarSelect(event)">
+          </label>
+        </div>
+
+        <div class="liquid-input-field">
+          <label>О себе (Bio)</label>
+          <input type="text" id="edit-bio" placeholder="Краткий статус">
+        </div>
+
+        <!-- 1. РАМКИ АВАТАРОК -->
+        <div class="liquid-input-field">
+          <label>Рамка аватарки (Frame)</label>
+          <select id="edit-avatar-frame" onchange="_updateLivePreviewFrame()">
+            <option value="frame-none">Без рамки</option>
+            <option value="frame-neon">Неоновый пульс (Cyan)</option>
+            <option value="frame-cyber">Киберпанк (Cyber Dash)</option>
+            <option value="frame-fire">Адское пламя (Fire)</option>
+            <option value="frame-ice">Арктический лед (Ice)</option>
+            <option value="frame-gold">Чистое золото (Gold)</option>
+            <!-- Секретная рамка админа -->
+            <option id="opt-admin-frame" value="frame-matrix-hq" style="display:none; color:#10b981; font-weight:900;">👑 СЕКРЕТ HQ: Тёмная Матрица</option>
+          </select>
+        </div>
+
+        <!-- 2. ПОСТЕРЫ/БАННЕРЫ -->
+        <div class="liquid-input-field">
+          <label>Постер шапки профиля (Banner)</label>
+          <select id="edit-banner-url">
+            <option value="banner-cyber">Кибер Сити (Cyber City)</option>
+            <option value="banner-space">Глубокий Космос (Deep Space)</option>
+            <option value="banner-synth">Синтвейв Неон (Synthwave)</option>
+            <option value="banner-sunset">Ночной Закат (Sunset)</option>
+            <!-- Секретный постер админа -->
+            <option id="opt-admin-banner" value="banner-darkmatter-hq" style="display:none; color:#10b981; font-weight:900;">👑 СЕКРЕТ HQ: Dark Matter Void</option>
+          </select>
+        </div>
+
+        <!-- 3. ЦВЕТ ТЕКСТА НИКНЕЙМА -->
+        <div class="liquid-input-field">
+          <label>Цвет никнейма</label>
+          <select id="edit-name-color">
+            <option value="#ffffff">Классический белый (#fff)</option>
+            <option value="#00f0ff">Кибер-Циан (#00f0ff)</option>
+            <option value="#ff007a">Неоновый розовый (#ff007a)</option>
+            <option value="#30d158">Лаймовый (#30d158)</option>
+            <option value="#ffd60a">Золотой люкс (#ffd60a)</option>
+            <option value="#bf5af2">Фиолетовый аметист (#bf5af2)</option>
+            <!-- Секретный цвет админа -->
+            <option id="opt-admin-color" value="linear-gold" style="display:none; color:#ffd700; font-weight:900;">👑 СЕКРЕТ HQ: Имперское жидкое золото</option>
+          </select>
+        </div>
+
+        <!-- 4. ЭФФЕКТЫ ТЕКСТА -->
+        <div class="liquid-input-field">
+          <label>Эффект текста никнейма</label>
+          <select id="edit-name-effect">
+            <option value="fx-none">Обычный</option>
+            <option value="fx-neon">Неоновое свечение (Glow)</option>
+            <option value="fx-glitch">Кибер-глитч (Glitch)</option>
+            <option value="fx-fire">Огненная аура (Flame)</option>
+            <option value="fx-rainbow">Радужный градиент (Chroma)</option>
+            <!-- Секретный эффект админа -->
+            <option id="opt-admin-fx" value="fx-hologram-god" style="display:none; color:#ffd700; font-weight:900;">👑 СЕКРЕТ HQ: Голограмма Создателя</option>
+          </select>
+        </div>
+
+        <!-- 5. МУЗЫКА -->
+        <div class="liquid-input-field">
+          <label>Музыка (Яндекс Музыка или Spotify)</label>
+          <select id="edit-music-type" onchange="_onMusicTypeChange()">
+            <option value="none">Без музыки</option>
+            <option value="yandex">Яндекс Музыка</option>
+            <option value="spotify">Spotify</option>
+          </select>
+        </div>
+
+        <div id="music-field-input" class="liquid-input-field" style="display:none;">
+          <label id="music-input-label">Ссылка на трек</label>
+          <input type="text" id="edit-music-url" placeholder="Вставьте ссылку на песню">
+        </div>
+
+        <button class="btn-liquid-main btn-liquid-outline" onclick="_previewOwnProfile()">Предпросмотр профиля</button>
+        <button class="btn-liquid-main" onclick="_saveProfile()">Сохранить стиль</button>
+        <button class="btn-liquid-main btn-liquid-outline" style="color:var(--danger); margin-top:12px;" onclick="_signOut()">Выйти</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- МОДАЛКА: Чат -->
+  <div id="modal-direct-chat" class="modal-backdrop">
+    <div class="modal-liquid-shell" style="max-width:420px; height:85dvh; display:flex; flex-direction:column;">
+      <div class="modal-liquid-head">
+        <span id="chat-header-title">@user</span>
+        <button class="btn-liquid-close" onclick="_hideModal('modal-direct-chat')">✕</button>
+      </div>
+      <div id="chat-messages-container" class="modal-liquid-body" style="flex:1; display:flex; flex-direction:column; gap:6px; overflow-y:auto;"></div>
+      <div style="padding:12px; border-top:1px solid var(--liquid-border); display:flex; gap:8px;">
+        <input type="text" id="chat-input-text" placeholder="Сообщение..." style="flex:1; background:rgba(255,255,255,0.06); border:1px solid var(--liquid-border); border-radius:var(--radius-pill); padding:10px 14px; color:#fff; outline:none; font-size:14px;">
+        <button class="btn-liquid-main" style="width:auto; margin:0; padding:10px 16px;" onclick="_sendDirectMessage()">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- МОДАЛКА: Создание Группы -->
+  <div id="modal-create-group" class="modal-backdrop">
+    <div class="modal-liquid-shell">
+      <div class="modal-liquid-head">
+        <span>Новая группа</span>
+        <button class="btn-liquid-close" onclick="_hideModal('modal-create-group')">✕</button>
+      </div>
+      <div class="modal-liquid-body">
+        <div class="liquid-input-field">
+          <label>Название группы</label>
+          <input type="text" id="new-group-name" placeholder="Название беседы">
+        </div>
+        <div class="liquid-input-field">
+          <label>Описание</label>
+          <input type="text" id="new-group-desc" placeholder="Краткое описание">
+        </div>
+        <button class="btn-liquid-main" onclick="_submitCreateGroup()">Создать группу</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- МОДАЛКА: Вход -->
+  <div id="modal-auth" class="modal-backdrop">
+    <div class="modal-liquid-shell">
+      <div class="modal-liquid-head">
+        <span>Вход в Nook</span>
+        <button class="btn-liquid-close" onclick="_hideModal('modal-auth')">✕</button>
+      </div>
+      <div class="modal-liquid-body">
+        <div class="liquid-input-field">
+          <label>Юзернейм</label>
+          <input type="text" id="auth-login" placeholder="Логин">
+        </div>
+        <div class="liquid-input-field">
+          <label>Пароль</label>
+          <input type="password" id="auth-pass" placeholder="Пароль">
+        </div>
+        <button class="btn-liquid-main" onclick="_authActionCustom('login')">Войти</button>
+        <button class="btn-liquid-main btn-liquid-outline" onclick="_authActionCustom('register')">Создать аккаунт</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const _0x1a = "https://tsoqstfbvjpusbhljtff.supabase.co";
+    const _0x1b = "sb_publishable_eu27ROp3T7R3gEOeRezaFQ_RlmVnDSM";
+    const _0xdb = supabase.createClient(_0x1a, _0x1b);
+
+    let _cu = null, _up = null;
+    let _activeChatPeerId = null;
+    let _activeGroupId = null;
+    let _modalTargetUserId = null;
+    let _postAttachedBase64 = null;
+    let _tempAvatarBase64 = null;
+    let _realtimeChannel = null;
+
+    function _toast(m) {
+      const b = document.getElementById('toast-box');
+      const t = document.createElement('div');
+      t.className = 'toast-liquid'; t.innerText = m;
+      b.appendChild(t);
+      setTimeout(() => { t.remove(); }, 3200);
+    }
+
+    async function _hashPassword(str) {
+      const msgBuffer = new TextEncoder().encode(str + "_nook_salt_secure_2026");
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+      return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function b58Encode(str) { return btoa(encodeURIComponent(str)); }
+    function b58Decode(str) { try { return decodeURIComponent(atob(str)); } catch(e) { return str; } }
+
+    function _switchView(t, e) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('view-' + t).classList.add('active');
+      if (e && e.currentTarget) e.currentTarget.classList.add('active');
+
+      if (t === 'chats') _loadChatsAndGroups();
+      if (t === 'feed') _loadFeedPosts();
+      if (t === 'search') _loadAllUsersForSearch('');
+    }
+
+    function _switchChatTab(tab) {
+      const directBtn = document.getElementById('subtab-direct');
+      const groupsBtn = document.getElementById('subtab-groups');
+      const directList = document.getElementById('direct-chats-list');
+      const groupsList = document.getElementById('groups-chats-list');
+
+      if (tab === 'direct') {
+        directBtn.classList.add('active'); groupsBtn.classList.remove('active');
+        directList.style.display = 'flex'; groupsList.style.display = 'none';
+      } else {
+        groupsBtn.classList.add('active'); directBtn.classList.remove('active');
+        directList.style.display = 'none'; groupsList.style.display = 'flex';
+      }
+    }
+
+    function _showModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function _hideModal(id) {
+      document.getElementById(id).style.display = 'none';
+      if (id === 'modal-user-view' || id === 'modal-profile') {
+        const slot = document.getElementById('uv-music-player-slot');
+        if (slot) slot.innerHTML = '';
+        const box = document.getElementById('uv-music-container');
+        if (box) box.style.display = 'none';
+      }
+      if (id === 'modal-direct-chat') _activeChatPeerId = null;
+    }
+
+    /* Применение стилей Nitro (Цвет, Эффект, Жирность) */
+    function _applyNitroTypography(elem, color, effect) {
+      if (!elem) return;
+      elem.className = '';
+      elem.style.color = '#ffffff';
+
+      if (color === 'linear-gold') {
+        elem.style.background = 'linear-gradient(135deg, #fff275, #ffd700, #ffae19)';
+        elem.style.webkitBackgroundClip = 'text';
+        elem.style.webkitTextFillColor = 'transparent';
+      } else if (color) {
+        elem.style.webkitBackgroundClip = 'unset';
+        elem.style.webkitTextFillColor = 'unset';
+        elem.style.color = color;
+      }
+
+      if (effect && effect !== 'fx-none') {
+        elem.classList.add(effect);
+      }
+    }
+
+    /* АВТОРИЗАЦИЯ + ПРОВЕРКА БАНОВ */
+    async function _authActionCustom(type) {
+      const u = document.getElementById('auth-login').value.trim().toLowerCase();
+      const p = document.getElementById('auth-pass').value.trim();
+      if (!u || p.length < 4) return _toast('Юзернейм и пароль от 4 символов');
+
+      const passHash = await _hashPassword(p);
+
+      if (type === 'register') {
+        const { data: exists } = await _0xdb.from('profiles').select('id').eq('username', u).maybeSingle();
+        if (exists) return _toast('Юзернейм уже занят!');
+
+        const isAdm = (u === 'nookoriginals');
+        const { data: newUser, error } = await _0xdb.from('profiles').insert({
+          username: u,
+          password_hash: passHash,
+          is_admin: isAdm,
+          is_verified: isAdm
+        }).select().single();
+
+        if (error) return _toast('Ошибка: ' + error.message);
+        localStorage.setItem('nook_current_user_id', newUser.id);
+        _toast('Аккаунт создан!');
+        _hideModal('modal-auth');
+        _syncUser();
+      } else {
+        const { data: user } = await _0xdb.from('profiles').select('*').eq('username', u).maybeSingle();
+        if (!user || user.password_hash !== passHash) {
+          return _toast('Неверный логин или пароль');
+        }
+
+        // Проверка бана
+        if (user.is_banned) {
+          if (user.banned_until) {
+            const until = new Date(user.banned_until);
+            if (new Date() < until) {
+              return _toast(`Аккаунт заблокирован до ${until.toLocaleString()}. Причина: ${user.ban_reason || 'Нарушение'}`);
+            } else {
+              // Срок временного бана истек -> разбаниваем
+              await _0xdb.from('profiles').update({ is_banned: false, banned_until: null }).eq('id', user.id);
+            }
+          } else {
+            return _toast(`Аккаунт заблокирован НАВСЕГДА. Причина: ${user.ban_reason || 'Нарушение'}`);
+          }
+        }
+
+        localStorage.setItem('nook_current_user_id', user.id);
+        _toast('Вход выполнен!');
+        _hideModal('modal-auth');
+        _syncUser();
+      }
+    }
+
+    async function _syncUser() {
+      const savedUserId = localStorage.getItem('nook_current_user_id');
+      if (!savedUserId) {
+        document.getElementById('user-display').innerText = 'Вход';
+        document.getElementById('badge-verified').style.display = 'none';
+        document.getElementById('user-avatar-img').style.display = 'none';
+        document.getElementById('user-avatar-placeholder').style.display = 'flex';
+        document.getElementById('nav-btn-admin').style.display = 'none';
+        _cu = null; _up = null; return;
+      }
+
+      const { data: p } = await _0xdb.from('profiles').select('*').eq('id', savedUserId).maybeSingle();
+      if (!p) { localStorage.removeItem('nook_current_user_id'); return _syncUser(); }
+
+      _cu = { id: p.id };
+      _up = p;
+
+      const disp = document.getElementById('user-display');
+      disp.innerText = `@${p.username}`;
+      _applyNitroTypography(disp, p.name_color, p.name_effect);
+
+      // Рамка аватарки в шапке
+      const frameWrap = document.getElementById('user-avatar-frame-wrap');
+      frameWrap.className = p.avatar_frame || 'frame-none';
+
+      if (p.is_verified) document.getElementById('badge-verified').style.display = 'block';
+      else document.getElementById('badge-verified').style.display = 'none';
+
+      if (p.is_admin) document.getElementById('nav-btn-admin').style.display = 'flex';
+      else document.getElementById('nav-btn-admin').style.display = 'none';
+
+      if (p.avatar_url) {
+        const img = document.getElementById('user-avatar-img');
+        img.src = p.avatar_url; img.style.display = 'block';
+        document.getElementById('user-avatar-placeholder').style.display = 'none';
+      } else {
+        document.getElementById('user-avatar-img').style.display = 'none';
+        const pl = document.getElementById('user-avatar-placeholder');
+        pl.style.display = 'flex'; pl.innerText = p.username.charAt(0).toUpperCase();
+      }
+
+      _loadChatsAndGroups();
+    }
+
+    function _openUserHub() {
+      if (!_cu) return _showModal('modal-auth');
+      document.getElementById('edit-bio').value = _up?.bio || '';
+      document.getElementById('profile-edit-preview').src = _up?.avatar_url || '';
+      document.getElementById('edit-avatar-frame').value = _up?.avatar_frame || 'frame-none';
+      document.getElementById('edit-banner-url').value = _up?.banner_url || 'banner-cyber';
+      document.getElementById('edit-name-color').value = _up?.name_color || '#ffffff';
+      document.getElementById('edit-name-effect').value = _up?.name_effect || 'fx-none';
+
+      // Разблокировка секретных админских предметов
+      const isAdmin = _up?.is_admin === true;
+      document.getElementById('opt-admin-frame').style.display = isAdmin ? 'block' : 'none';
+      document.getElementById('opt-admin-banner').style.display = isAdmin ? 'block' : 'none';
+      document.getElementById('opt-admin-color').style.display = isAdmin ? 'block' : 'none';
+      document.getElementById('opt-admin-fx').style.display = isAdmin ? 'block' : 'none';
+
+      document.getElementById('edit-music-type').value = _up?.music_type || 'none';
+      _onMusicTypeChange();
+      document.getElementById('edit-music-url').value = _up?.music_url || '';
+      
+      _updateLivePreviewFrame();
+      _tempAvatarBase64 = null;
+      _showModal('modal-profile');
+    }
+
+    function _updateLivePreviewFrame() {
+      const fr = document.getElementById('edit-avatar-frame').value;
+      document.getElementById('profile-edit-frame-wrap').className = fr;
+    }
+
+    function _handleAvatarSelect(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        _tempAvatarBase64 = ev.target.result;
+        document.getElementById('profile-edit-preview').src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function _onMusicTypeChange() {
+      const val = document.getElementById('edit-music-type').value;
+      const inputSlot = document.getElementById('music-field-input');
+      const label = document.getElementById('music-input-label');
+      inputSlot.style.display = (val === 'yandex' || val === 'spotify') ? 'block' : 'none';
+      if (val === 'yandex') label.innerText = 'Ссылка на трек Яндекс Музыки';
+      if (val === 'spotify') label.innerText = 'Ссылка на трек Spotify';
+    }
+
+    async function _saveProfile() {
+      const bio = document.getElementById('edit-bio').value.trim();
+      const frame = document.getElementById('edit-avatar-frame').value;
+      const banner = document.getElementById('edit-banner-url').value;
+      const color = document.getElementById('edit-name-color').value;
+      const fx = document.getElementById('edit-name-effect').value;
+      const mType = document.getElementById('edit-music-type').value;
+      const mUrl = document.getElementById('edit-music-url').value.trim();
+
+      const updateData = {
+        bio: bio,
+        avatar_frame: frame,
+        banner_url: banner,
+        name_color: color,
+        name_effect: fx,
+        music_type: mType,
+        music_url: mUrl
+      };
+      if (_tempAvatarBase64) updateData.avatar_url = _tempAvatarBase64;
+
+      const { error } = await _0xdb.from('profiles').update(updateData).eq('id', _cu.id);
+      if (error) return _toast('Ошибка: ' + error.message);
+
+      _toast('Стиль Discord Nitro сохранен!');
+      _hideModal('modal-profile');
+      _syncUser();
+    }
+
+    function _previewOwnProfile() {
+      _hideModal('modal-profile');
+      _openUserProfile(_cu.id);
+    }
+
+    async function _signOut() {
+      localStorage.removeItem('nook_current_user_id');
+      _hideModal('modal-profile');
+      _syncUser();
+      _toast('Вы вышли из системы');
+    }
+
+    /* ПРОСМОТР ПРОФИЛЯ ПОЛЬЗОВАТЕЛЯ */
+    async function _openUserProfile(userId) {
+      _modalTargetUserId = userId;
+      const { data: p } = await _0xdb.from('profiles').select('*').eq('id', userId).maybeSingle();
+      if (!p) return _toast('Пользователь не найден');
+
+      // 1. Баннер
+      const banner = document.getElementById('uv-banner');
+      banner.className = `banner-preview ${p.banner_url || 'banner-cyber'}`;
+
+      // 2. Никнейм с эффектами Nitro
+      const nameElem = document.getElementById('uv-username');
+      nameElem.innerText = `@${p.username}`;
+      _applyNitroTypography(nameElem, p.name_color, p.name_effect);
+
+      document.getElementById('uv-bio').innerText = p.bio || 'Участник Nook';
+
+      // 3. Рамка и Аватарка
+      document.getElementById('uv-avatar-frame-box').className = p.avatar_frame || 'frame-none';
+      const av = document.getElementById('uv-avatar');
+      if (p.avatar_url) { av.src = p.avatar_url; av.style.display = 'block'; }
+      else { av.src = ''; av.style.display = 'none'; }
+
+      if (p.is_verified) document.getElementById('uv-badge-verified').style.display = 'block';
+      else document.getElementById('uv-badge-verified').style.display = 'none';
+
+      // 4. Музыка
+      const musicBox = document.getElementById('uv-music-container');
+      const musicSlot = document.getElementById('uv-music-player-slot');
+      musicSlot.innerHTML = '';
+
+      if (p.music_type === 'yandex' && p.music_url) {
+        musicBox.style.display = 'block';
+        let match = p.music_url.match(/track\/(\d+)/);
+        if (match) {
+          musicSlot.innerHTML = `<iframe frameborder="0" style="border:none;width:100%;height:100px;border-radius:12px;" src="https://music.yandex.ru/iframe/#track/${match[1]}"></iframe>`;
+        } else {
+          musicSlot.innerHTML = `<a href="${p.music_url}" target="_blank" style="color:#fc0; text-decoration:none; font-weight:800;">▶ Слушать в Яндекс Музыке</a>`;
+        }
+      } else if (p.music_type === 'spotify' && p.music_url) {
+        musicBox.style.display = 'block';
+        let trackId = p.music_url.split('track/')[1]?.split('?')[0] || '';
+        musicSlot.innerHTML = `<iframe src="https://open.spotify.com/embed/track/${trackId}?theme=0" width="100%" height="80" frameBorder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" style="border-radius:12px;"></iframe>`;
+      } else {
+        musicBox.style.display = 'none';
+      }
+
+      document.getElementById('uv-action-btns').style.display = (_cu && _cu.id === userId) ? 'none' : 'flex';
+      _showModal('modal-user-view');
+    }
+
+    function _openChatModalFromProfile() {
+      if (!_modalTargetUserId) return;
+      _hideModal('modal-user-view');
+      _openDirectChat(_modalTargetUserId);
+    }
+
+    /* АДМИНКА HQ: БАНЫ НАВСЕГДА И НА ВРЕМЯ */
+    async function _adminApplyUserBan(applyBan) {
+      const u = document.getElementById('admin-ban-username').value.trim().toLowerCase();
+      if (!u) return _toast('Введите юзернейм нарушителя');
+
+      const { data: user } = await _0xdb.from('profiles').select('id, is_admin').eq('username', u).maybeSingle();
+      if (!user) return _toast('Пользователь не найден');
+      if (user.is_admin) return _toast('Нельзя забанить администратора HQ!');
+
+      if (!applyBan) {
+        // Разбан
+        await _0xdb.from('profiles').update({ is_banned: false, banned_until: null, ban_reason: '' }).eq('id', user.id);
+        _toast(`Пользователь @${u} успешно разбанен!`);
+        document.getElementById('admin-ban-username').value = '';
+        return;
+      }
+
+      const dur = document.getElementById('admin-ban-duration').value;
+      const reason = document.getElementById('admin-ban-reason').value.trim() || 'Нарушение правил Nook';
+
+      let bannedUntil = null;
+      const now = new Date();
+      if (dur === '1h') bannedUntil = new Date(now.getTime() + 1 * 3600 * 1000);
+      if (dur === '24h') bannedUntil = new Date(now.getTime() + 24 * 3600 * 1000);
+      if (dur === '7d') bannedUntil = new Date(now.getTime() + 7 * 24 * 3600 * 1000);
+      if (dur === '30d') bannedUntil = new Date(now.getTime() + 30 * 24 * 3600 * 1000);
+
+      const { error } = await _0xdb.from('profiles').update({
+        is_banned: true,
+        banned_until: bannedUntil ? bannedUntil.toISOString() : null,
+        ban_reason: reason
+      }).eq('id', user.id);
+
+      if (error) return _toast('Ошибка: ' + error.message);
+      _toast(`@${u} заблокирован (${dur === 'perm' ? 'НАВСЕГДА' : dur})!`);
+      document.getElementById('admin-ban-username').value = '';
+    }
+
+    async function _adminToggleCountry(ban) {
+      const code = document.getElementById('admin-country-code').value.trim().toUpperCase();
+      if (!code) return _toast('Введите код страны');
+      if (ban) await _0xdb.from('banned_countries').insert({ country_code: code });
+      else await _0xdb.from('banned_countries').delete().eq('country_code', code);
+      _toast(`Страна ${code} обновлена`);
+      document.getElementById('admin-country-code').value = '';
+    }
+
+    async function _adminToggleVerify(status) {
+      const u = document.getElementById('admin-verify-username').value.trim().toLowerCase();
+      await _0xdb.from('profiles').update({ is_verified: status }).eq('username', u);
+      _toast(`Статус @${u} изменен`);
+      _syncUser();
+    }
+
+    /* ЧАТЫ И СООБЩЕНИЯ */
+    async function _loadChatsAndGroups() {
+      if (!_cu) return;
+      const directList = document.getElementById('direct-chats-list');
+      const { data: users } = await _0xdb.from('profiles').select('*').neq('id', _cu.id).limit(25);
+      directList.innerHTML = '';
+      if (users) {
+        users.forEach(u => {
+          const item = document.createElement('div');
+          item.className = 'chat-card-item';
+          item.onclick = () => _openDirectChat(u.id);
+          item.innerHTML = `
+            <div style="display:flex; align-items:center; gap:12px;">
+              <div class="${u.avatar_frame || 'frame-none'}" style="width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+                ${u.avatar_url ? `<img src="${u.avatar_url}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;">` : `<div style="font-weight:900;">${u.username.charAt(0).toUpperCase()}</div>`}
+              </div>
+              <div>
+                <div class="user-item-${u.id}" style="font-weight:900;">@${u.username}</div>
+                <div style="font-size:12px; color:var(--muted);">${u.bio || 'Нажмите для беседы'}</div>
+              </div>
+            </div>
+          `;
+          directList.appendChild(item);
+          _applyNitroTypography(item.querySelector(`.user-item-${u.id}`), u.name_color, u.name_effect);
+        });
+      }
+    }
+
+    async function _openDirectChat(peerId) {
+      if (!_cu) return _toast('Войдите в аккаунт');
+      _activeChatPeerId = peerId;
+      const { data: peer } = await _0xdb.from('profiles').select('username').eq('id', peerId).maybeSingle();
+      document.getElementById('chat-header-title').innerText = `@${peer?.username || 'user'}`;
+
+      _showModal('modal-direct-chat');
+      const cont = document.getElementById('chat-messages-container');
+      cont.innerHTML = '<p style="color:var(--muted); font-size:12px; text-align:center;">Загрузка сообщений...</p>';
+
+      const { data: msgs } = await _0xdb.from('direct_messages')
+        .select('*')
+        .or(`and(sender_id.eq.${_cu.id},receiver_id.eq.${peerId}),and(sender_id.eq.${peerId},receiver_id.eq.${_cu.id})`)
+        .order('created_at', { ascending: true });
+
+      cont.innerHTML = '';
+      if (msgs) {
+        msgs.forEach(m => {
+          const bubble = document.createElement('div');
+          bubble.className = `msg-bubble ${m.sender_id === _cu.id ? 'outgoing' : 'incoming'}`;
+          bubble.innerText = b58Decode(m.encrypted_content);
+          cont.appendChild(bubble);
+        });
+      }
+      cont.scrollTop = cont.scrollHeight;
+    }
+
+    async function _sendDirectMessage() {
+      const inp = document.getElementById('chat-input-text');
+      const text = inp.value.trim();
+      if (!text || !_activeChatPeerId || !_cu) return;
+
+      const enc = b58Encode(text);
+      inp.value = '';
+      await _0xdb.from('direct_messages').insert({
+        sender_id: _cu.id,
+        receiver_id: _activeChatPeerId,
+        encrypted_content: enc
+      });
+      _openDirectChat(_activeChatPeerId);
+    }
+
+    /* ПОИСК */
+    async function _loadAllUsersForSearch(query) {
+      const cont = document.getElementById('search-results-container');
+      let req = _0xdb.from('profiles').select('*').order('created_at', { ascending: false });
+      if (query) req = req.ilike('username', `%${query}%`);
+      const { data: users } = await req;
+      cont.innerHTML = '';
+      if (users) {
+        users.forEach(u => {
+          const item = document.createElement('div');
+          item.className = 'search-result-item';
+          item.onclick = () => _openUserProfile(u.id);
+          item.innerHTML = `
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div class="${u.avatar_frame || 'frame-none'}" style="width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+                ${u.avatar_url ? `<img src="${u.avatar_url}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">` : `<div style="font-weight:900;">${u.username.charAt(0).toUpperCase()}</div>`}
+              </div>
+              <div>
+                <div class="search-name-${u.id}" style="font-weight:900;">@${u.username}</div>
+                <div style="font-size:11px; color:var(--muted);">${u.bio || 'Участник Nook'}</div>
+              </div>
+            </div>
+            <svg style="width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:2.2;" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          `;
+          cont.appendChild(item);
+          _applyNitroTypography(item.querySelector(`.search-name-${u.id}`), u.name_color, u.name_effect);
+        });
+      }
+    }
+
+    function _handleSearchInput(e) {
+      _loadAllUsersForSearch(e.target.value.trim().toLowerCase());
+    }
+
+    /* ЛЕНТА ПОСТОВ */
+    function _handlePostPhotoSelect(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => { _postAttachedBase64 = ev.target.result; _toast('Фото прикреплено'); };
+      reader.readAsDataURL(file);
+    }
+
+    async function _sendFeedPost() {
+      if (!_cu) return _toast('Сначала войдите в систему');
+      const text = document.getElementById('feed-post-text').value.trim();
+      if (!text && !_postAttachedBase64) return _toast('Напишите пост или добавьте фото');
+
+      await _0xdb.from('posts').insert({
+        author_id: _cu.id,
+        content: text || 'Фотография',
+        image_url: _postAttachedBase64 || null
+      });
+
+      document.getElementById('feed-post-text').value = '';
+      _postAttachedBase64 = null;
+      _toast('Пост опубликован!');
+      _loadFeedPosts();
+    }
+
+    async function _loadFeedPosts() {
+      const { data: posts } = await _0xdb.from('posts').select('*, profiles(username, is_verified, avatar_url, avatar_frame, name_color, name_effect)').order('created_at', { ascending: false });
+      const stream = document.getElementById('feed-stream');
+      stream.innerHTML = '';
+      if (!posts || posts.length === 0) {
+        stream.innerHTML = '<p style="text-align:center; color:var(--muted); font-size:13px; margin-top:20px;">В ленте пока пусто</p>';
+        return;
+      }
+      posts.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'liquid-post-card';
+        card.innerHTML = `
+          <div class="post-header post-author-row" onclick="_openUserProfile('${p.author_id}')">
+            <div class="${p.profiles?.avatar_frame || 'frame-none'}" style="width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+              ${p.profiles?.avatar_url ? `<img class="post-avatar-img" src="${p.profiles.avatar_url}">` : `<div style="font-weight:900;">${p.profiles?.username?.charAt(0).toUpperCase()}</div>`}
+            </div>
+            <span class="post-user-${p.id}">@${p.profiles?.username || 'user'}</span>
+            ${p.profiles?.is_verified ? '<svg class="verified-icon" style="display:inline-block;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>' : ''}
+          </div>
+          <div class="post-body-text">${p.content}</div>
+          ${p.image_url ? `<img class="post-attached-image" src="${p.image_url}">` : ''}
+        `;
+        stream.appendChild(card);
+        _applyNitroTypography(card.querySelector(`.post-user-${p.id}`), p.profiles?.name_color, p.profiles?.name_effect);
+      });
+    }
+
+    // Инициализация
+    (async () => {
+      _syncUser();
+    })();
+  </script>
+</body>
+</html>
