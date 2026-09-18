@@ -1,0 +1,1947 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Nook 12.0 Deluxe</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg: #030305;
+      --liquid-card: rgba(18, 18, 26, 0.78);
+      --liquid-specular: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.03) 45%, rgba(255, 255, 255, 0.08) 100%);
+      --liquid-border: rgba(255, 255, 255, 0.16);
+      --liquid-border-strong: rgba(255, 255, 255, 0.45);
+      --text: #ffffff;
+      --muted: #9ca3af;
+      --danger: #ff453a;
+      --success: #30d158;
+      --accent: #0a84ff;
+      --check-blue: #38bdf8;
+      --orb-1: #6366f1;
+      --orb-2: #ec4899;
+      --radius-2xl: 32px;
+      --radius-xl: 22px;
+      --radius-pill: 9999px;
+      --ios-spring: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    body.theme-oled {
+      --bg: #000000;
+      --liquid-card: rgba(18, 18, 22, 0.85);
+      --accent: #ffffff;
+      --orb-1: #3b82f6;
+      --orb-2: #8b5cf6;
+      --liquid-border: rgba(255, 255, 255, 0.14);
+    }
+    body.theme-cyber {
+      --bg: #0c031c;
+      --liquid-card: rgba(30, 12, 60, 0.82);
+      --accent: #00f0ff;
+      --orb-1: #d946ef;
+      --orb-2: #06b6d4;
+      --liquid-border: rgba(0, 240, 255, 0.3);
+      --liquid-border-strong: rgba(217, 70, 239, 0.6);
+    }
+    body.theme-space {
+      --bg: #020b1e;
+      --liquid-card: rgba(10, 28, 64, 0.82);
+      --accent: #38bdf8;
+      --orb-1: #2563eb;
+      --orb-2: #0284c7;
+      --liquid-border: rgba(56, 189, 248, 0.3);
+      --liquid-border-strong: rgba(56, 189, 248, 0.6);
+    }
+    body.theme-crimson {
+      --bg: #180205;
+      --liquid-card: rgba(52, 10, 18, 0.82);
+      --accent: #ff334b;
+      --orb-1: #ef4444;
+      --orb-2: #b91c1c;
+      --liquid-border: rgba(255, 51, 75, 0.32);
+      --liquid-border-strong: rgba(255, 51, 75, 0.65);
+    }
+    body.theme-matrix {
+      --bg: #021207;
+      --liquid-card: rgba(8, 40, 18, 0.82);
+      --accent: #10b981;
+      --orb-1: #059669;
+      --orb-2: #34d399;
+      --liquid-border: rgba(16, 185, 129, 0.32);
+      --liquid-border-strong: rgba(52, 211, 153, 0.65);
+    }
+    body.theme-gold-hq {
+      --bg: #141002;
+      --liquid-card: rgba(45, 36, 10, 0.85);
+      --accent: #ffd700;
+      --orb-1: #f59e0b;
+      --orb-2: #d97706;
+      --liquid-border: rgba(255, 215, 0, 0.35);
+      --liquid-border-strong: rgba(255, 215, 0, 0.7);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      overflow: hidden;
+      position: relative;
+      transition: background 0.4s var(--ios-spring);
+    }
+
+    .ambient-glow { position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+    .orb { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.42; animation: floatOrb 18s ease-in-out infinite alternate; transition: background 0.5s ease; }
+    .orb-1 { width: 420px; height: 420px; background: radial-gradient(circle, var(--orb-1), transparent 70%); top: -100px; left: 10%; }
+    .orb-2 { width: 440px; height: 440px; background: radial-gradient(circle, var(--orb-2), transparent 70%); bottom: -120px; right: -60px; animation-duration: 22s; }
+    @keyframes floatOrb { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(40px, 30px) scale(1.1); } 100% { transform: translate(-30px, 50px) scale(0.95); } }
+
+    /* ================= ПОЛНОЦЕННЫЙ ЭКРАН БЛОКИРОВКИ С SVG ================= */
+    #screen-banned {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 4, 6, 0.95);
+      backdrop-filter: blur(50px);
+      -webkit-backdrop-filter: blur(50px);
+      z-index: 99999;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      animation: banPop 0.4s var(--ios-spring);
+    }
+    @keyframes banPop {
+      from { opacity: 0; transform: scale(0.92); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .ban-card {
+      background: rgba(22, 14, 16, 0.85);
+      border: 1px solid rgba(255, 69, 58, 0.35);
+      backdrop-filter: blur(45px);
+      border-radius: var(--radius-2xl);
+      padding: 36px 24px;
+      max-width: 380px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 30px 80px rgba(255, 69, 58, 0.25), 0 20px 40px rgba(0,0,0,0.9);
+      position: relative;
+    }
+
+    .ban-svg-wrap {
+      width: 86px;
+      height: 86px;
+      border-radius: 50%;
+      background: rgba(255, 69, 58, 0.12);
+      border: 1px solid rgba(255, 69, 58, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 30px rgba(255, 69, 58, 0.45);
+      animation: pulseShield 2s infinite ease-in-out;
+    }
+    @keyframes pulseShield {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 25px rgba(255, 69, 58, 0.35); }
+      50% { transform: scale(1.06); box-shadow: 0 0 40px rgba(255, 69, 58, 0.65); }
+    }
+    .ban-svg-wrap svg {
+      width: 44px;
+      height: 44px;
+      stroke: var(--danger);
+      fill: none;
+      stroke-width: 2.2;
+    }
+
+    .ban-info-box {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-xl);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      text-align: left;
+    }
+    .ban-row { display: flex; justify-content: space-between; font-size: 12px; }
+    .ban-row-label { color: var(--muted); font-weight: 700; }
+    .ban-row-val { color: #fff; font-weight: 800; }
+
+    header {
+      position: relative; z-index: 50; display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px; background: rgba(12, 12, 16, 0.82); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px);
+      border-bottom: 1px solid var(--liquid-border); transition: border-color 0.3s;
+    }
+    .brand-wrap { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .brand-logo { font-weight: 900; font-size: 22px; letter-spacing: -0.05em; color: #fff; }
+    .brand-tag { font-size: 9px; font-weight: 900; color: #000; background: #fff; padding: 2px 7px; border-radius: var(--radius-pill); }
+
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    .btn-settings-gear {
+      background: var(--liquid-specular); border: 1px solid var(--liquid-border); color: #fff;
+      width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; backdrop-filter: blur(20px); transition: transform 0.25s var(--ios-spring);
+    }
+    .btn-settings-gear:active { transform: scale(0.88); }
+    .btn-settings-gear svg { width: 19px; height: 19px; stroke: currentColor; fill: none; stroke-width: 2.2; }
+
+    .user-pill-liquid {
+      display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 800;
+      background: var(--liquid-specular); backdrop-filter: blur(20px); padding: 5px 12px 5px 5px;
+      border-radius: var(--radius-pill); border: 1px solid var(--liquid-border); cursor: pointer;
+      transition: transform 0.25s var(--ios-spring);
+    }
+    .user-pill-liquid:active { transform: scale(0.93); }
+    .user-avatar-round {
+      width: 28px; height: 28px; border-radius: 50%; background: #1e1e24; object-fit: cover;
+      display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900;
+    }
+    .verified-icon { width: 15px; height: 15px; fill: #fff; display: none; }
+
+    main { flex: 1; overflow: hidden; position: relative; z-index: 10; }
+    .view {
+      display: none; height: 100%; opacity: 0; transform: scale(0.97) translateY(10px);
+      transition: opacity 0.3s var(--ios-spring), transform 0.3s var(--ios-spring);
+    }
+    .view.active { display: flex; opacity: 1; transform: scale(1) translateY(0); }
+
+    /* Винил и волны */
+    .vinyl-player-box {
+      width: 100%; background: rgba(14, 14, 20, 0.85); border: 1px solid var(--liquid-border-strong);
+      border-radius: var(--radius-2xl); padding: 14px 16px; margin-top: 10px; display: flex;
+      flex-direction: column; gap: 12px; box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6); position: relative; overflow: hidden;
+    }
+    .vinyl-stage { display: flex; align-items: center; gap: 16px; position: relative; }
+    .vinyl-sleeve {
+      width: 62px; height: 62px; border-radius: 14px; background-size: cover; background-position: center;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.6); position: relative; z-index: 2; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.2);
+    }
+    .vinyl-disk {
+      width: 58px; height: 58px; border-radius: 50%;
+      background: radial-gradient(circle, #2d2d38 12%, #111115 13%, #1e1e24 28%, #0d0d10 45%, #22222a 62%, #0a0a0d 100%);
+      border: 2px solid rgba(255, 255, 255, 0.18); box-shadow: 0 0 16px rgba(0, 0, 0, 0.85);
+      position: absolute; left: 28px; z-index: 1; display: flex; align-items: center; justify-content: center;
+      transition: transform 0.4s var(--ios-spring), left 0.4s var(--ios-spring);
+    }
+    .vinyl-disk::after { content: ''; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+    .vinyl-player-box.playing .vinyl-disk { left: 48px; animation: spinVinyl 3.5s linear infinite; }
+    @keyframes spinVinyl { 100% { transform: rotate(360deg); } }
+
+    .vinyl-track-info { flex: 1; margin-left: 36px; display: flex; flex-direction: column; gap: 3px; z-index: 2; }
+    .vinyl-title { font-size: 14px; font-weight: 900; color: #fff; letter-spacing: -0.02em; }
+    .vinyl-genre { font-size: 11px; font-weight: 700; color: var(--muted); }
+
+    .vinyl-controls-row { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 10px; }
+    .btn-play-vinyl {
+      width: 40px; height: 40px; border-radius: 50%; background: #ffffff; color: #000000; border: none;
+      display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 14px rgba(255,255,255,0.4);
+      transition: transform 0.2s var(--ios-spring);
+    }
+    .btn-play-vinyl:active { transform: scale(0.86); }
+    .btn-play-vinyl svg { width: 18px; height: 18px; fill: currentColor; }
+
+    .audio-waves-container { display: flex; align-items: flex-end; gap: 3.5px; height: 26px; padding: 0 6px; }
+    .wave-bar { width: 4px; height: 6px; border-radius: 4px; background: var(--accent); box-shadow: 0 0 8px var(--accent); transition: height 0.18s ease; }
+    .vinyl-player-box.playing .wave-bar:nth-child(1) { animation: waveHop 0.7s infinite alternate 0.1s; }
+    .vinyl-player-box.playing .wave-bar:nth-child(2) { animation: waveHop 0.6s infinite alternate 0.3s; }
+    .vinyl-player-box.playing .wave-bar:nth-child(3) { animation: waveHop 0.8s infinite alternate 0.2s; }
+    .vinyl-player-box.playing .wave-bar:nth-child(4) { animation: waveHop 0.5s infinite alternate 0.4s; }
+    .vinyl-player-box.playing .wave-bar:nth-child(5) { animation: waveHop 0.9s infinite alternate 0.15s; }
+    .vinyl-player-box.playing .wave-bar:nth-child(6) { animation: waveHop 0.65s infinite alternate 0.25s; }
+    .vinyl-player-box.playing .wave-bar:nth-child(7) { animation: waveHop 0.75s infinite alternate 0.35s; }
+    @keyframes waveHop { 0% { height: 6px; opacity: 0.5; } 100% { height: 24px; opacity: 1; } }
+
+    /* Сетка тем и винилов */
+    .vinyl-grid-picker { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 8px; }
+    .vinyl-item-card {
+      background: rgba(255,255,255,0.06); border: 2px solid var(--liquid-border); border-radius: var(--radius-xl);
+      padding: 10px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: all 0.25s var(--ios-spring);
+    }
+    .vinyl-item-card:active { transform: scale(0.95); }
+    .vinyl-item-card.active { border-color: #fff; background: rgba(255,255,255,0.14); box-shadow: 0 0 16px rgba(255,255,255,0.3); }
+    .vinyl-item-thumb { width: 38px; height: 38px; border-radius: 10px; background-size: cover; background-position: center; flex-shrink: 0; }
+
+    .theme-grid-selector { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 8px; }
+    .theme-card-option {
+      background: rgba(255, 255, 255, 0.05); border: 2px solid var(--liquid-border); border-radius: var(--radius-xl);
+      padding: 12px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: all 0.25s var(--ios-spring);
+    }
+    .theme-card-option:active { transform: scale(0.95); }
+    .theme-card-option.active { border-color: #fff; box-shadow: 0 0 16px rgba(255, 255, 255, 0.35); background: rgba(255, 255, 255, 0.14); }
+    .theme-circle-preview { width: 28px; height: 28px; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.5); flex-shrink: 0; }
+
+    /* Рамки Nitro */
+    .frame-none { border: 2px solid transparent; }
+    .frame-neon { border: 3px solid #00f0ff; box-shadow: 0 0 14px #00f0ff; }
+    .frame-cyber { border: 3px solid #f43f5e; box-shadow: 0 0 16px #f43f5e; border-style: dashed; }
+    .frame-fire { border: 3px solid #ff7b00; box-shadow: 0 0 18px #ff3700; }
+    .frame-ice { border: 3px solid #7dd3fc; box-shadow: 0 0 16px #38bdf8; }
+    .frame-gold { border: 3px solid #fbbf24; box-shadow: 0 0 18px rgba(251, 191, 36, 0.8); }
+    .frame-matrix-hq { border: 3px solid #10b981; box-shadow: 0 0 22px #059669; }
+
+    .banner-preview { width: 100%; height: 110px; border-radius: var(--radius-xl) var(--radius-xl) 0 0; background-size: cover; background-position: center; }
+    .banner-cyber { background-image: linear-gradient(180deg, rgba(0,0,0,0.2), rgba(18,18,26,1)), url('https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80'); }
+    .banner-space { background-image: linear-gradient(180deg, rgba(0,0,0,0.2), rgba(18,18,26,1)), url('https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=800&q=80'); }
+    .banner-synth { background-image: linear-gradient(180deg, rgba(0,0,0,0.2), rgba(18,18,26,1)), url('https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=800&q=80'); }
+    .b-hq-1 { background-image: linear-gradient(180deg, rgba(0,0,0,0.3), rgba(18,18,26,1)), url('https://images.unsplash.com/photo-1534447677768-be436bb09401?w=800&q=80'); }
+
+    /* Экраны */
+    #view-chats { flex-direction: column; height: 100%; padding: 16px; overflow-y: auto; gap: 14px; }
+    .chat-subtabs { display: flex; gap: 8px; background: rgba(255,255,255,0.06); padding: 4px; border-radius: var(--radius-pill); border: 1px solid var(--liquid-border); }
+    .chat-subtab-btn { flex: 1; background: transparent; border: none; color: var(--muted); font-size: 13px; font-weight: 800; padding: 8px 12px; border-radius: var(--radius-pill); cursor: pointer; transition: all 0.25s var(--ios-spring); }
+    .chat-subtab-btn.active { background: #fff; color: #000; box-shadow: 0 4px 14px rgba(0,0,0,0.4); }
+    .chat-card-item { display: flex; align-items: center; justify-content: space-between; background: var(--liquid-card); border: 1px solid var(--liquid-border); padding: 14px 16px; border-radius: var(--radius-xl); cursor: pointer; transition: transform 0.2s var(--ios-spring); }
+    .chat-card-item:active { transform: scale(0.96); }
+
+    #view-feed { flex-direction: column; height: 100%; overflow-y: auto; padding: 16px; gap: 14px; }
+    .liquid-composer-box { background: var(--liquid-card); backdrop-filter: blur(35px); border: 1px solid var(--liquid-border); border-radius: var(--radius-2xl); padding: 16px; }
+    .composer-textarea { width: 100%; background: transparent; border: none; color: #fff; font-size: 15px; font-weight: 600; outline: none; resize: none; min-height: 54px; }
+    .composer-bottom-bar { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--liquid-border); padding-top: 12px; }
+    .btn-pick-liquid { display: flex; align-items: center; gap: 8px; color: #fff; font-size: 13px; font-weight: 800; background: rgba(255, 255, 255, 0.08); border: 1px solid var(--liquid-border); padding: 8px 14px; border-radius: var(--radius-pill); cursor: pointer; transition: transform 0.2s var(--ios-spring); }
+    .btn-pick-liquid:active { transform: scale(0.92); }
+    .btn-publish-liquid { background: #ffffff; color: #000000; border: none; padding: 10px 22px; border-radius: var(--radius-pill); font-weight: 900; font-size: 14px; cursor: pointer; transition: transform 0.2s var(--ios-spring); }
+    .btn-publish-liquid:active { transform: scale(0.92); }
+
+    .liquid-post-card { background: var(--liquid-card); backdrop-filter: blur(35px); border: 1px solid var(--liquid-border); border-radius: var(--radius-2xl); padding: 18px; position: relative; }
+    .post-author-row { display: flex; align-items: center; gap: 10px; font-size: 15px; margin-bottom: 10px; cursor: pointer; }
+    .post-avatar-img { width: 34px; height: 34px; border-radius: 50%; background: #1c1c1e; object-fit: cover; }
+    .post-body-text { font-size: 15px; font-weight: 500; color: #f3f4f6; line-height: 1.45; }
+    .post-attached-image { margin-top: 12px; width: 100%; border-radius: var(--radius-xl); border: 1px solid var(--liquid-border); object-fit: cover; display: block; }
+
+    #view-search { flex-direction: column; padding: 16px; overflow-y: auto; gap: 12px; }
+    .search-input-box { background: var(--liquid-card); border: 1px solid var(--liquid-border); border-radius: var(--radius-xl); padding: 12px 16px; display: flex; align-items: center; gap: 10px; }
+    .search-input-box input { flex: 1; background: transparent; border: none; color: #fff; font-size: 15px; font-weight: 700; outline: none; }
+    .search-result-item { display: flex; align-items: center; justify-content: space-between; background: var(--liquid-card); border: 1px solid var(--liquid-border); padding: 12px 14px; border-radius: var(--radius-xl); cursor: pointer; transition: transform 0.2s var(--ios-spring); }
+    .search-result-item:active { transform: scale(0.96); }
+
+    #view-admin { flex-direction: column; padding: 16px; overflow-y: auto; gap: 14px; }
+    .admin-liquid-card { background: var(--liquid-card); border: 1px solid var(--liquid-border); border-radius: var(--radius-2xl); padding: 18px; }
+
+    footer { position: relative; z-index: 50; display: flex; flex-direction: column; padding: 0 16px 12px; gap: 6px; }
+    nav { display: flex; align-items: center; background: rgba(14, 14, 18, 0.85); border: 1px solid var(--liquid-border); backdrop-filter: blur(40px); border-radius: var(--radius-pill); padding: 10px 14px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7); }
+    .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: none; color: var(--muted); font-size: 11px; font-weight: 800; cursor: pointer; transition: all 0.25s var(--ios-spring); }
+    .nav-btn.active { color: #fff; transform: translateY(-2px); }
+    .nav-btn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2.2; }
+
+    /* Шторки iOS */
+    .modal-backdrop {
+      display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.82); backdrop-filter: blur(28px);
+      z-index: 100; align-items: center; justify-content: center; padding: 16px;
+      animation: fadeInBackdrop 0.3s var(--ios-spring);
+    }
+    @keyframes fadeInBackdrop { from { opacity: 0; } to { opacity: 1; } }
+
+    .modal-liquid-shell {
+      background: rgba(18, 18, 24, 0.94); border: 1px solid var(--liquid-border-strong);
+      backdrop-filter: blur(45px); border-radius: var(--radius-2xl); width: 100%; max-width: 400px;
+      overflow: hidden; box-shadow: 0 24px 70px rgba(0, 0, 0, 0.9); animation: slideUpIOS 0.36s var(--ios-spring);
+    }
+    @keyframes slideUpIOS { from { transform: translateY(40px) scale(0.92); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+
+    .modal-liquid-head { padding: 16px 20px; border-bottom: 1px solid var(--liquid-border); display: flex; align-items: center; justify-content: space-between; font-weight: 900; font-size: 16px; }
+    .modal-liquid-body { padding: 20px; max-height: 74dvh; overflow-y: auto; font-size: 14px; }
+    .liquid-input-field { margin-bottom: 12px; }
+    .liquid-input-field label { display: block; font-size: 11px; font-weight: 800; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; }
+    .liquid-input-field input, .liquid-input-field select { width: 100%; background: rgba(255, 255, 255, 0.06); border: 1px solid var(--liquid-border); border-radius: var(--radius-xl); padding: 12px 14px; color: #fff; font-size: 14px; font-weight: 700; outline: none; }
+    .btn-liquid-main { width: 100%; background: #ffffff; color: #000000; border: none; padding: 13px; border-radius: var(--radius-pill); font-weight: 900; font-size: 14px; cursor: pointer; margin-top: 6px; transition: transform 0.2s var(--ios-spring); }
+    .btn-liquid-main:active { transform: scale(0.95); }
+    .btn-liquid-outline { background: transparent; border: 1px solid var(--liquid-border); color: #fff; }
+    .btn-liquid-close { background: none; border: none; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+    /* Сообщения */
+    .msg-wrapper { display: flex; flex-direction: column; width: 100%; margin-bottom: 8px; position: relative; }
+    .msg-bubble { max-width: 82%; padding: 10px 14px; border-radius: 18px; font-size: 14px; line-height: 1.4; word-break: break-word; position: relative; cursor: pointer; transition: transform 0.15s; }
+    .msg-bubble:active { transform: scale(0.98); }
+    .msg-bubble.outgoing { background: var(--accent); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .msg-bubble.incoming { background: rgba(255,255,255,0.08); border: 1px solid var(--liquid-border); align-self: flex-start; border-bottom-left-radius: 4px; }
+    .msg-meta-row { display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 10px; color: rgba(255, 255, 255, 0.7); margin-top: 4px; font-weight: 600; }
+    .msg-status-tick { display: inline-flex; align-items: center; }
+    .msg-status-tick svg { width: 14px; height: 14px; }
+    .tick-unread { stroke: rgba(255,255,255,0.6); }
+    .tick-read { stroke: var(--check-blue); }
+
+    .call-system-card {
+      align-self: center; background: rgba(255,255,255,0.06); border: 1px solid var(--liquid-border);
+      border-radius: var(--radius-pill); padding: 6px 16px; font-size: 12px; font-weight: 700;
+      color: #fff; display: flex; align-items: center; gap: 8px; margin: 8px 0;
+    }
+
+    #modal-call-screen {
+      display: none; position: fixed; inset: 0; background: rgba(8, 8, 12, 0.94); backdrop-filter: blur(50px);
+      z-index: 700; flex-direction: column; align-items: center; justify-content: space-between; padding: 56px 20px 48px;
+    }
+    .call-avatar-pulse-box { position: relative; width: 100px; height: 100px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .call-avatar-pulse-box::before {
+      content: ''; position: absolute; inset: -12px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(10, 132, 255, 0.4), transparent 70%); animation: callWave 2s infinite ease-out;
+    }
+    @keyframes callWave { 0% { transform: scale(0.9); opacity: 1; } 100% { transform: scale(1.4); opacity: 0; } }
+    .call-avatar-img { width: 94px; height: 94px; border-radius: 50%; object-fit: cover; border: 3px solid rgba(255,255,255,0.4); z-index: 2; }
+    .video-call-box { width: 100%; max-width: 380px; height: 48%; border-radius: var(--radius-2xl); overflow: hidden; position: relative; background: #14141c; border: 1px solid var(--liquid-border); }
+    #remote-video { width: 100%; height: 100%; object-fit: cover; }
+    #local-video { position: absolute; bottom: 12px; right: 12px; width: 86px; height: 124px; border-radius: 16px; object-fit: cover; border: 2px solid rgba(255,255,255,0.7); background: #000; }
+    .call-controls-bar { display: flex; align-items: center; gap: 22px; z-index: 10; }
+    .call-action-btn { width: 60px; height: 60px; border-radius: 50%; border: 1px solid var(--liquid-border-strong); background: var(--liquid-specular); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s var(--ios-spring); }
+    .call-action-btn:active { transform: scale(0.88); }
+    .call-action-btn svg { width: 24px; height: 24px; stroke: #fff; fill: none; stroke-width: 2.2; }
+    .call-btn-hangup { width: 68px; height: 68px; background: var(--danger); border: none; }
+
+    #modal-incoming-call {
+      display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.88); backdrop-filter: blur(40px);
+      z-index: 900; flex-direction: column; align-items: center; justify-content: space-between; padding: 60px 24px 50px;
+      animation: slideUpIOS 0.32s var(--ios-spring);
+    }
+    .incoming-pulse-avatar {
+      width: 110px; height: 110px; border-radius: 50%; object-fit: cover; border: 3px solid #30d158;
+      box-shadow: 0 0 25px rgba(48, 209, 88, 0.6); animation: ringPulse 1.2s infinite;
+    }
+    @keyframes ringPulse { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
+
+    #toast-box { position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%); z-index: 950; display: flex; flex-direction: column; gap: 6px; pointer-events: none; width: 90%; max-width: 320px; }
+    .toast-liquid { background: rgba(24, 24, 30, 0.96); border: 1px solid var(--liquid-border-strong); backdrop-filter: blur(25px); padding: 12px 18px; border-radius: var(--radius-pill); font-size: 13px; font-weight: 800; color: #fff; text-align: center; }
+  </style>
+</head>
+<body class="theme-oled" onclick="_unlockAudioContext()">
+
+  <!-- ЭКРАН ПОЛНОЦЕННОЙ БЛОКИРОВКИ С SVG -->
+  <div id="screen-banned">
+    <div class="ban-card">
+      <div class="ban-svg-wrap">
+        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+      </div>
+      <h2 style="font-size:22px; font-weight:900; color:#fff; letter-spacing:-0.03em;">Доступ заблокирован</h2>
+      <p style="font-size:13px; color:var(--muted); line-height:1.45;">Ваш аккаунт был временно или навсегда ограничен протоколом безопасности Nook HQ.</p>
+
+      <div class="ban-info-box">
+        <div class="ban-row">
+          <span class="ban-row-label">Причина:</span>
+          <span class="ban-row-val" id="ban-display-reason" style="color:var(--danger);">Нарушение правил</span>
+        </div>
+        <div class="ban-row">
+          <span class="ban-row-label">Срок блокировки:</span>
+          <span class="ban-row-val" id="ban-display-duration">Навсегда</span>
+        </div>
+        <div class="ban-row">
+          <span class="ban-row-label">ID аккаунта:</span>
+          <span class="ban-row-val" id="ban-display-id" style="font-family:monospace; opacity:0.8;">#0000</span>
+        </div>
+      </div>
+
+      <button class="btn-liquid-main btn-liquid-outline" style="margin-top:8px;" onclick="_signOutFromBanScreen()">Выйти из профиля</button>
+    </div>
+  </div>
+
+  <div class="ambient-glow">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+  </div>
+
+  <div id="toast-box"></div>
+
+  <!-- ШТОРКА ВХОДЯЩЕГО ВЫЗОВА -->
+  <div id="modal-incoming-call">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:14px;">
+      <img id="inc-caller-avatar" class="incoming-pulse-avatar" src="">
+      <h2 id="inc-caller-name" style="font-size:24px; font-weight:900;">@user</h2>
+      <p style="color:var(--muted); font-size:14px; font-weight:600;">Входящий защищенный вызов...</p>
+    </div>
+
+    <div style="display:flex; gap:36px; align-items:center;">
+      <button class="call-action-btn" style="width:68px; height:68px; background:var(--danger); border:none;" onclick="_rejectIncomingCall()">
+        <svg viewBox="0 0 24 24" style="transform: rotate(135deg);"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      </button>
+      <button class="call-action-btn" style="width:68px; height:68px; background:var(--success); border:none;" onclick="_acceptIncomingCall()">
+        <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ЭКРАН АКТИВНОГО ЗВОНКА -->
+  <div id="modal-call-screen">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:12px; z-index:10;">
+      <div class="call-avatar-pulse-box">
+        <img id="call-peer-avatar-img" class="call-avatar-img" src="" alt="avatar">
+      </div>
+      <h2 id="call-peer-title" style="font-size:24px; font-weight:900;">@user</h2>
+      <p id="call-status-label" style="color:var(--muted); font-size:13px; font-weight:600;">Гудки...</p>
+    </div>
+
+    <div class="video-call-box">
+      <video id="remote-video" autoplay playsinline></video>
+      <video id="local-video" autoplay playsinline muted></video>
+    </div>
+
+    <div class="call-controls-bar">
+      <button class="call-action-btn" onclick="_toggleMuteAudio()">
+        <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      </button>
+      <button class="call-action-btn" onclick="_toggleMuteVideo()">
+        <svg viewBox="0 0 24 24"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+      </button>
+      <button class="call-action-btn call-btn-hangup" onclick="_endCall(true)">
+        <svg viewBox="0 0 24 24" style="transform: rotate(135deg);"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <header>
+    <div class="brand-wrap">
+      <div class="brand-logo">NOOK</div>
+      <div class="brand-tag">12.0 DELUXE</div>
+    </div>
+    <div class="header-right">
+      <button class="btn-settings-gear" onclick="_openUserHub()" title="Настройки">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+
+      <div class="user-pill-liquid" onclick="_openUserHub()">
+        <div id="user-avatar-frame-wrap" style="position:relative; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+          <img id="user-avatar-img" class="user-avatar-round" style="display:none; width:26px; height:26px;" />
+          <div id="user-avatar-placeholder" class="user-avatar-round" style="width:26px; height:26px;">N</div>
+        </div>
+        <span id="user-display">Вход</span>
+        <svg id="badge-verified" class="verified-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ЧАТЫ -->
+    <section id="view-chats" class="view active">
+      <div class="chat-subtabs">
+        <button id="subtab-direct" class="chat-subtab-btn active" onclick="_switchChatTab('direct')">Личные чаты</button>
+        <button id="subtab-groups" class="chat-subtab-btn" onclick="_switchChatTab('groups')">Группы</button>
+      </div>
+      <div id="direct-chats-list" style="display:flex; flex-direction:column; gap:10px;"></div>
+      <div id="groups-chats-list" style="display:none; flex-direction:column; gap:10px;">
+        <div id="groups-container" style="display:flex; flex-direction:column; gap:10px;"></div>
+      </div>
+    </section>
+
+    <!-- ЛЕНТА -->
+    <section id="view-feed" class="view">
+      <div class="liquid-composer-box">
+        <textarea id="feed-post-text" class="composer-textarea" placeholder="Что нового?"></textarea>
+        <div class="composer-bottom-bar">
+          <label class="btn-pick-liquid">
+            <svg style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.2;" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+            <span>Медиа</span>
+            <input type="file" id="feed-media-picker" accept="image/*,video/*" style="display:none;" onchange="_handlePostMediaSelect(event)">
+          </label>
+          <button class="btn-publish-liquid" id="btn-post-submit" onclick="_sendFeedPost()">Опубликовать</button>
+        </div>
+      </div>
+      <div id="feed-stream" style="display:flex; flex-direction:column; gap:14px;"></div>
+    </section>
+
+    <!-- ПОИСК -->
+    <section id="view-search" class="view">
+      <div class="search-input-box">
+        <svg style="width:18px;height:18px;stroke:var(--muted);fill:none;stroke-width:2.2;" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Поиск по юзернейму..." oninput="_handleSearchInput(event)">
+      </div>
+      <div id="search-results-container" style="display:flex; flex-direction:column; gap:8px;"></div>
+    </section>
+
+    <!-- HQ АДМИН -->
+    <section id="view-admin" class="view">
+      <div class="admin-liquid-card">
+        <h3>Модерация (Бан / Разбан)</h3>
+        <div class="liquid-input-field">
+          <label>Юзернейм нарушителя</label>
+          <input type="text" id="admin-ban-username" placeholder="Логин">
+        </div>
+        <div class="liquid-input-field">
+          <label>Срок</label>
+          <select id="admin-ban-duration">
+            <option value="perm">Навсегда</option>
+            <option value="1h">1 час</option>
+            <option value="24h">24 часа</option>
+          </select>
+        </div>
+        <div class="liquid-input-field">
+          <label>Причина блокировки</label>
+          <input type="text" id="admin-ban-reason" placeholder="Нарушение правил сообщества">
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-liquid-main" style="background:var(--danger); color:#fff;" onclick="_adminApplyUserBan(true)">Забанить</button>
+          <button class="btn-liquid-main btn-liquid-outline" onclick="_adminApplyUserBan(false)">Разбанить</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <nav>
+      <button class="nav-btn active" onclick="_switchView('chats', event)">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Чаты</span>
+      </button>
+      <button class="nav-btn" onclick="_switchView('feed', event)">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+        <span>Лента</span>
+      </button>
+      <button class="nav-btn" onclick="_switchView('search', event)">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span>Поиск</span>
+      </button>
+      <button id="nav-btn-admin" class="nav-btn" style="display:none;" onclick="_switchView('admin', event)">
+        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>HQ</span>
+      </button>
+    </nav>
+  </footer>
+
+  <!-- МОДАЛКА: ПРОСМОТР ПРОФИЛЯ -->
+  <div id="modal-user-view" class="modal-backdrop">
+    <div class="modal-liquid-shell">
+      <div class="banner-preview banner-cyber" id="uv-banner"></div>
+      <div class="modal-liquid-body" style="padding-top:0; margin-top:-42px;">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:8px; padding-bottom:14px; border-bottom:1px solid var(--liquid-border);">
+          <div id="uv-avatar-frame-box" style="position:relative; width:84px; height:84px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+            <img id="uv-avatar" style="width:74px; height:74px; border-radius:50%; object-fit:cover; background:#1c1c1e;">
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <h3 id="uv-username" style="font-size:19px; font-weight:900;">@user</h3>
+            <svg id="uv-badge-verified" class="verified-icon" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+          </div>
+          <div id="uv-bio" style="font-size:13px; color:var(--muted); text-align:center;"></div>
+          
+          <!-- ВИНИЛОВЫЙ ДИСК NOOK + ВОЛНЫ -->
+          <div id="uv-vinyl-container" class="vinyl-player-box" style="display:none;">
+            <div class="vinyl-stage">
+              <div id="uv-vinyl-sleeve" class="vinyl-sleeve"></div>
+              <div class="vinyl-disk"></div>
+              <div class="vinyl-track-info">
+                <div id="uv-vinyl-title" class="vinyl-title">Cyber Track</div>
+                <div id="uv-vinyl-genre" class="vinyl-genre">Nook Sound Library</div>
+              </div>
+            </div>
+
+            <div class="vinyl-controls-row">
+              <button class="btn-play-vinyl" id="uv-vinyl-play-btn" onclick="_toggleVinylPlayback()">
+                <svg id="svg-vinyl-icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              </button>
+
+              <div class="audio-waves-container">
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+                <div class="wave-bar"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ВНЕШНИЙ ПЛЕЕР (ЯНДЕКС МУЗЫКА / SPOTIFY) -->
+          <div id="uv-music-container" style="width:100%; display:none; background:rgba(255,255,255,0.05); padding:10px; border-radius:var(--radius-xl); border:1px solid var(--liquid-border); margin-top:6px;">
+            <div style="font-size:10px; font-weight:800; color:var(--muted); margin-bottom:6px; text-transform:uppercase;">Трек профиля</div>
+            <div id="uv-music-player-slot"></div>
+          </div>
+
+          <div id="uv-action-btns" style="display:flex; gap:8px; width:100%; margin-top:8px;">
+            <button id="uv-chat-btn" class="btn-liquid-main" style="flex:1; padding:10px;" onclick="_openChatModalFromProfile()">Написать сообщение</button>
+          </div>
+        </div>
+        <button class="btn-liquid-main btn-liquid-outline" style="margin-top:12px;" onclick="_hideModal('modal-user-view')">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- МОДАЛКА: НАСТРОЙКИ -->
+  <div id="modal-profile" class="modal-backdrop">
+    <div class="modal-liquid-shell">
+      <div class="modal-liquid-head">
+        <span>Кастомизация профиля</span>
+        <button class="btn-liquid-close" onclick="_hideModal('modal-profile')">
+          <svg style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.2;" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-liquid-body">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:10px; margin-bottom:14px;">
+          <div id="profile-edit-frame-wrap" style="position:relative; width:78px; height:78px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+            <img id="profile-edit-preview" style="width:68px; height:68px; border-radius:50%; object-fit:cover; background:#1c1c1e;">
+          </div>
+          <label class="btn-pick-liquid">
+            <svg style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.2;" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span>Выбрать фото</span>
+            <input type="file" id="avatar-file-picker" accept="image/*" style="display:none;" onchange="_handleAvatarSelect(event)">
+          </label>
+        </div>
+
+        <div class="liquid-input-field">
+          <label>Источник музыки профиля</label>
+          <select id="edit-music-type" onchange="_onMusicTypeChange()">
+            <option value="vinyl">💿 Виниловый диск Nook (с волнами)</option>
+            <option value="yandex">🟡 Яндекс Музыка (Ссылка)</option>
+            <option value="spotify">🟢 Spotify (Ссылка / ID)</option>
+            <option value="none">🚫 Без музыки</option>
+          </select>
+        </div>
+
+        <div id="vinyl-picker-block" class="liquid-input-field">
+          <label>Выберите виниловый диск</label>
+          <div class="vinyl-grid-picker">
+            <div class="vinyl-item-card" id="card-vinyl-cyber_drift" onclick="_selectVinylTrack('cyber_drift')">
+              <div class="vinyl-item-thumb" style="background-image:url('https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=150&q=80');"></div>
+              <div>
+                <div style="font-size:12px; font-weight:900;">Cyber Drift</div>
+                <div style="font-size:10px; color:var(--muted);">Synth Phonk</div>
+              </div>
+            </div>
+
+            <div class="vinyl-item-card" id="card-vinyl-neon_horizon" onclick="_selectVinylTrack('neon_horizon')">
+              <div class="vinyl-item-thumb" style="background-image:url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=150&q=80');"></div>
+              <div>
+                <div style="font-size:12px; font-weight:900;">Neon Horizon</div>
+                <div style="font-size:10px; color:var(--muted);">Future Bass</div>
+              </div>
+            </div>
+
+            <div class="vinyl-item-card" id="card-vinyl-midnight_void" onclick="_selectVinylTrack('midnight_void')">
+              <div class="vinyl-item-thumb" style="background-image:url('https://images.unsplash.com/photo-1511447333015-45b65e60f6d5?w=150&q=80');"></div>
+              <div>
+                <div style="font-size:12px; font-weight:900;">Midnight Void</div>
+                <div style="font-size:10px; color:var(--muted);">Dark Ambient</div>
+              </div>
+            </div>
+
+            <div class="vinyl-item-card" id="card-vinyl-gold_pulse_hq" style="display:none;" onclick="_selectVinylTrack('gold_pulse_hq')">
+              <div class="vinyl-item-thumb" style="background-image:url('https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=150&q=80');"></div>
+              <div>
+                <div style="font-size:12px; font-weight:900; color:#ffd700;">👑 HQ Gold</div>
+                <div style="font-size:10px; color:var(--muted);">VIP Track</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="external-music-url-block" class="liquid-input-field" style="display:none;">
+          <label id="external-music-label">Ссылка на трек</label>
+          <input type="text" id="edit-music-url" placeholder="Вставьте ссылку на трек...">
+        </div>
+
+        <div class="liquid-input-field">
+          <label>Тема оформления приложения</label>
+          <div class="theme-grid-selector">
+            <div class="theme-card-option" id="card-theme-oled" onclick="_setAppThemeCustom('theme-oled')">
+              <div class="theme-circle-preview" style="background:#000000; border:2px solid #fff;"></div>
+              <span style="font-size:12px; font-weight:800;">OLED Black</span>
+            </div>
+            <div class="theme-card-option" id="card-theme-cyber" onclick="_setAppThemeCustom('theme-cyber')">
+              <div class="theme-circle-preview" style="background:linear-gradient(135deg, #d946ef, #06b6d4);"></div>
+              <span style="font-size:12px; font-weight:800;">Cyberpunk</span>
+            </div>
+            <div class="theme-card-option" id="card-theme-space" onclick="_setAppThemeCustom('theme-space')">
+              <div class="theme-circle-preview" style="background:linear-gradient(135deg, #1e40af, #38bdf8);"></div>
+              <span style="font-size:12px; font-weight:800;">Deep Space</span>
+            </div>
+            <div class="theme-card-option" id="card-theme-crimson" onclick="_setAppThemeCustom('theme-crimson')">
+              <div class="theme-circle-preview" style="background:linear-gradient(135deg, #b91c1c, #ff334b);"></div>
+              <span style="font-size:12px; font-weight:800;">Crimson</span>
+            </div>
+            <div class="theme-card-option" id="card-theme-matrix" onclick="_setAppThemeCustom('theme-matrix')">
+              <div class="theme-circle-preview" style="background:linear-gradient(135deg, #059669, #34d399);"></div>
+              <span style="font-size:12px; font-weight:800;">Matrix</span>
+            </div>
+            <div class="theme-card-option" id="card-theme-gold-hq" style="display:none;" onclick="_setAppThemeCustom('theme-gold-hq')">
+              <div class="theme-circle-preview" style="background:linear-gradient(135deg, #d97706, #ffd700);"></div>
+              <span style="font-size:12px; font-weight:800; color:#ffd700;">👑 HQ Gold</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="liquid-input-field">
+          <label>О себе (Bio)</label>
+          <input type="text" id="edit-bio" placeholder="Статус">
+        </div>
+
+        <div class="liquid-input-field">
+          <label>Рамка</label>
+          <select id="edit-avatar-frame" onchange="_updateLivePreviewFrame()">
+            <option value="frame-none">Без рамки</option>
+            <option value="frame-neon">Неоновый пульс</option>
+            <option value="frame-cyber">Киберпанк</option>
+            <option value="frame-fire">Адское пламя</option>
+            <option value="frame-ice">Лед</option>
+            <option value="frame-gold">Золото</option>
+            <option id="opt-admin-frame" value="frame-matrix-hq" style="display:none; color:#10b981;">👑 HQ: Тёмная Матрица</option>
+          </select>
+        </div>
+
+        <div class="liquid-input-field">
+          <label>Постер шапки</label>
+          <select id="edit-banner-url">
+            <option value="banner-cyber">Кибер Сити</option>
+            <option value="banner-space">Космос</option>
+            <option value="banner-synth">Синтвейв</option>
+            <option id="opt-admin-banner" value="b-hq-1" style="display:none; color:#10b981;">👑 HQ Dark Matter</option>
+          </select>
+        </div>
+
+        <div class="liquid-input-field">
+          <label>Цвет никнейма</label>
+          <select id="edit-name-color">
+            <option value="#ffffff">Белый</option>
+            <option value="#00f0ff">Циан</option>
+            <option value="#ff007a">Розовый</option>
+            <option value="#30d158">Лаймовый</option>
+            <option value="#ffd700">Золото</option>
+          </select>
+        </div>
+
+        <div class="liquid-input-field">
+          <label>Эффект никнейма</label>
+          <select id="edit-name-effect">
+            <option value="fx-none">Обычный</option>
+            <option value="fx-neon">Неон</option>
+            <option value="fx-glitch">Глитч</option>
+            <option value="fx-fire">Огонь</option>
+            <option id="opt-admin-fx" value="fx-hologram-god" style="display:none; color:#ffd700;">👑 HQ Голограмма</option>
+          </select>
+        </div>
+
+        <button class="btn-liquid-main btn-liquid-outline" onclick="_previewOwnProfile()">Посмотреть свой профиль</button>
+        <button class="btn-liquid-main" onclick="_saveProfile()">Сохранить всё</button>
+        <button class="btn-liquid-main btn-liquid-outline" style="color:var(--danger); margin-top:12px;" onclick="_signOut()">Выйти</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- МОДАЛКА: ЧАТ -->
+  <div id="modal-direct-chat" class="modal-backdrop">
+    <div class="modal-liquid-shell" style="max-width:420px; height:85dvh; display:flex; flex-direction:column;">
+      <div class="modal-liquid-head">
+        <span id="chat-header-title">@user</span>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <button style="background:none; border:none; display:flex; align-items:center; cursor:pointer;" onclick="_startCallWithPeer()">
+            <svg style="width:20px;height:20px;stroke:#30d158;fill:none;stroke-width:2.2;" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          </button>
+          <button class="btn-liquid-close" onclick="_hideModal('modal-direct-chat')">
+            <svg style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.2;" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="chat-messages-container" class="modal-liquid-body" style="flex:1; display:flex; flex-direction:column; gap:8px; overflow-y:auto;"></div>
+      
+      <div style="padding:12px; border-top:1px solid var(--liquid-border); display:flex; gap:8px; align-items:center;">
+        <label class="btn-pick-liquid" style="padding:10px 12px; margin:0;">
+          <svg style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.2;" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          <input type="file" id="chat-media-picker" accept="image/*,video/*" style="display:none;" onchange="_handleChatMediaSelect(event)">
+        </label>
+        <input type="text" id="chat-input-text" placeholder="Сообщение..." style="flex:1; background:rgba(255,255,255,0.06); border:1px solid var(--liquid-border); border-radius:var(--radius-pill); padding:10px 14px; color:#fff; outline:none; font-size:14px;">
+        <button class="btn-liquid-main" style="width:auto; margin:0; padding:10px 16px;" onclick="_submitChatMessage()">
+          <svg style="width:16px;height:16px;stroke:#000;fill:none;stroke-width:2.4;" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- МОДАЛКА: Вход -->
+  <div id="modal-auth" class="modal-backdrop">
+    <div class="modal-liquid-shell">
+      <div class="modal-liquid-head">
+        <span>Вход в Nook</span>
+        <button class="btn-liquid-close" onclick="_hideModal('modal-auth')">
+          <svg style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.2;" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-liquid-body">
+        <div class="liquid-input-field">
+          <label>Юзернейм</label>
+          <input type="text" id="auth-login" placeholder="Логин">
+        </div>
+        <div class="liquid-input-field">
+          <label>Пароль</label>
+          <input type="password" id="auth-pass" placeholder="Пароль">
+        </div>
+        <button class="btn-liquid-main" onclick="_authActionCustom('login')">Войти</button>
+        <button class="btn-liquid-main btn-liquid-outline" onclick="_authActionCustom('register')">Создать аккаунт</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const _0x1a = "https://tsoqstfbvjpusbhljtff.supabase.co";
+    const _0x1b = "sb_publishable_eu27ROp3T7R3gEOeRezaFQ_RlmVnDSM";
+    const _0xdb = supabase.createClient(_0x1a, _0x1b);
+
+    /* АВТОНОМНЫЙ СИНТЕЗАТОР САУНДТРЕКОВ NOOK (WEB AUDIO API) */
+    let _synthAudioCtx = null;
+    let _synthInterval = null;
+    let _isSynthPlaying = false;
+
+    const NOOK_SOUND_LIBRARY = {
+      cyber_drift: {
+        title: "Cyber Drift 2026",
+        genre: "Synthwave / Cyber Phonk",
+        cover: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=400&q=80",
+        tempo: 125,
+        pattern: [65.41, 130.81, 98.00, 116.54]
+      },
+      neon_horizon: {
+        title: "Neon Horizon",
+        genre: "Future Bass / Melodic",
+        cover: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&q=80",
+        tempo: 140,
+        pattern: [174.61, 220.00, 261.63, 329.63]
+      },
+      midnight_void: {
+        title: "Midnight Void",
+        genre: "Dark Ambient / Lo-Fi Chill",
+        cover: "https://images.unsplash.com/photo-1511447333015-45b65e60f6d5?w=400&q=80",
+        tempo: 75,
+        pattern: [55.00, 82.41, 110.00, 73.42]
+      },
+      gold_pulse_hq: {
+        title: "HQ Imperial Gold Pulse",
+        genre: "Creator Exclusive VIP",
+        cover: "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=400&q=80",
+        tempo: 130,
+        pattern: [87.31, 174.61, 130.81, 164.81]
+      }
+    };
+
+    let _cu = null, _up = null;
+    let _activeChatPeerId = null;
+    let _modalTargetUserId = null;
+    let _postAttachedMedia = null;
+    let _tempAvatarBase64 = null;
+    let _cachedProfiles = {};
+    let _selectedTheme = 'theme-oled';
+    let _selectedVinylKey = 'cyber_drift';
+
+    let _localStream = null;
+    let _callStartTime = null;
+    let _callTimerInterval = null;
+    let _ringtoneInterval = null;
+    let _isCallActive = false;
+    let _incomingCallSignal = null;
+    let _audioUnlocked = false;
+
+    function _toast(m) {
+      const b = document.getElementById('toast-box');
+      const t = document.createElement('div');
+      t.className = 'toast-liquid'; t.innerText = m;
+      b.appendChild(t);
+      setTimeout(() => { t.remove(); }, 3200);
+    }
+
+    function _unlockAudioContext() {
+      if (_audioUnlocked) return;
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        ctx.resume().then(() => { _audioUnlocked = true; });
+      } catch (e) {}
+      if ("Notification" in window && Notification.permission !== "granted") {
+        Notification.requestPermission();
+      }
+    }
+
+    async function _hashPassword(str) {
+      const msgBuffer = new TextEncoder().encode(str + "_nook_salt_secure_2026");
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+      return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function b58Encode(str) { return btoa(encodeURIComponent(str)); }
+    function b58Decode(str) { try { return decodeURIComponent(atob(str)); } catch(e) { return str; } }
+
+    function _setAppThemeCustom(themeClass) {
+      _selectedTheme = themeClass;
+      document.body.className = themeClass;
+      localStorage.setItem('nook_current_theme', themeClass);
+      document.querySelectorAll('.theme-card-option').forEach(c => c.classList.remove('active'));
+      const activeCard = document.getElementById(`card-${themeClass}`);
+      if (activeCard) activeCard.classList.add('active');
+    }
+
+    function _selectVinylTrack(key) {
+      _selectedVinylKey = key;
+      document.querySelectorAll('.vinyl-item-card').forEach(c => c.classList.remove('active'));
+      const activeItem = document.getElementById(`card-vinyl-${key}`);
+      if (activeItem) activeItem.classList.add('active');
+      _toast(`Выбран диск: ${NOOK_SOUND_LIBRARY[key].title}`);
+    }
+
+    function _onMusicTypeChange() {
+      const type = document.getElementById('edit-music-type').value;
+      const vinylBlock = document.getElementById('vinyl-picker-block');
+      const extBlock = document.getElementById('external-music-url-block');
+      const extLabel = document.getElementById('external-music-label');
+
+      if (type === 'vinyl') {
+        vinylBlock.style.display = 'block';
+        extBlock.style.display = 'none';
+      } else if (type === 'yandex' || type === 'spotify') {
+        vinylBlock.style.display = 'none';
+        extBlock.style.display = 'block';
+        extLabel.innerText = (type === 'yandex') ? 'Ссылка на трек Яндекс Музыки' : 'Ссылка на трек Spotify';
+      } else {
+        vinylBlock.style.display = 'none';
+        extBlock.style.display = 'none';
+      }
+    }
+
+    function _applyNitroTypography(elem, color, effect) {
+      if (!elem) return;
+      elem.className = '';
+      elem.style.background = 'none';
+      elem.style.webkitBackgroundClip = 'unset';
+      elem.style.webkitTextFillColor = 'unset';
+      elem.style.color = color || '#ffffff';
+      if (effect && effect !== 'fx-none') elem.classList.add(effect);
+    }
+
+    function _switchView(t, e) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('view-' + t).classList.add('active');
+      if (e && e.currentTarget) e.currentTarget.classList.add('active');
+
+      if (t === 'chats') _loadChats();
+      if (t === 'feed') _loadFeedPosts();
+      if (t === 'search') _loadAllUsersForSearch('');
+    }
+
+    function _showModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function _hideModal(id) {
+      document.getElementById(id).style.display = 'none';
+      if (id === 'modal-user-view') {
+        _stopVinylPlayback();
+        const slot = document.getElementById('uv-music-player-slot');
+        if (slot) slot.innerHTML = '';
+        const box = document.getElementById('uv-music-container');
+        if (box) box.style.display = 'none';
+      }
+      if (id === 'modal-direct-chat') {
+        _activeChatPeerId = null;
+      }
+    }
+
+    /* СИНТЕЗАТОР */
+    function _triggerSynthNote(freq, dur = 0.35, type = 'sawtooth') {
+      try {
+        if (!_synthAudioCtx) {
+          _synthAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (_synthAudioCtx.state === 'suspended') {
+          _synthAudioCtx.resume();
+        }
+
+        const t = _synthAudioCtx.currentTime;
+        const osc = _synthAudioCtx.createOscillator();
+        const gain = _synthAudioCtx.createGain();
+        const filter = _synthAudioCtx.createBiquadFilter();
+
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, t);
+
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(1400, t);
+        filter.frequency.exponentialRampToValueAtTime(300, t + dur);
+
+        gain.gain.setValueAtTime(0.28, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(_synthAudioCtx.destination);
+
+        osc.start(t);
+        osc.stop(t + dur);
+
+        const kickOsc = _synthAudioCtx.createOscillator();
+        const kickGain = _synthAudioCtx.createGain();
+        kickOsc.frequency.setValueAtTime(120, t);
+        kickOsc.frequency.exponentialRampToValueAtTime(0.01, t + 0.2);
+        kickGain.gain.setValueAtTime(0.35, t);
+        kickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+        kickOsc.connect(kickGain);
+        kickGain.connect(_synthAudioCtx.destination);
+        kickOsc.start(t);
+        kickOsc.stop(t + 0.2);
+      } catch (e) {}
+    }
+
+    function _toggleVinylPlayback() {
+      const playerBox = document.getElementById('uv-vinyl-container');
+      const icon = document.getElementById('svg-vinyl-icon');
+
+      if (!_isSynthPlaying) {
+        _unlockAudioContext();
+        if (!_synthAudioCtx) {
+          _synthAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        _synthAudioCtx.resume();
+
+        const trackKey = (_cachedProfiles[_modalTargetUserId]?.vinyl_track) || _selectedVinylKey || 'cyber_drift';
+        const trackData = NOOK_SOUND_LIBRARY[trackKey] || NOOK_SOUND_LIBRARY.cyber_drift;
+
+        let step = 0;
+        const intervalMs = Math.round((60 / trackData.tempo) * 1000);
+
+        _triggerSynthNote(trackData.pattern[0]);
+        _synthInterval = setInterval(() => {
+          step = (step + 1) % trackData.pattern.length;
+          _triggerSynthNote(trackData.pattern[step]);
+        }, intervalMs);
+
+        _isSynthPlaying = true;
+        playerBox.classList.add('playing');
+        icon.innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+      } else {
+        _stopVinylPlayback();
+      }
+    }
+
+    function _stopVinylPlayback() {
+      if (_synthInterval) {
+        clearInterval(_synthInterval);
+        _synthInterval = null;
+      }
+      _isSynthPlaying = false;
+      const playerBox = document.getElementById('uv-vinyl-container');
+      const icon = document.getElementById('svg-vinyl-icon');
+      if (playerBox) playerBox.classList.remove('playing');
+      if (icon) icon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+    }
+
+    /* ЗВУКИ ЗВОНКА */
+    function _playTone(freq, type = 'sine', duration = 0.8) {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function _startDialTones() {
+      _stopSoundEffects();
+      _playTone(425, 'sine', 1.0);
+      _ringtoneInterval = setInterval(() => { _playTone(425, 'sine', 1.0); }, 3000);
+    }
+
+    function _startIncomingRingtone() {
+      _stopSoundEffects();
+      const ring = () => {
+        _playTone(853, 'triangle', 0.2);
+        setTimeout(() => _playTone(960, 'triangle', 0.2), 200);
+        setTimeout(() => _playTone(853, 'triangle', 0.2), 400);
+        setTimeout(() => _playTone(960, 'triangle', 0.4), 600);
+        if (navigator.vibrate) navigator.vibrate([300, 150, 300, 150]);
+      };
+      ring();
+      _ringtoneInterval = setInterval(ring, 2200);
+    }
+
+    function _stopSoundEffects() {
+      if (_ringtoneInterval) {
+        clearInterval(_ringtoneInterval);
+        _ringtoneInterval = null;
+      }
+    }
+
+    /* АВТОРИЗАЦИЯ И ПРОВЕРКА БЛОКИРОВКИ */
+    async function _authActionCustom(type) {
+      const u = document.getElementById('auth-login').value.trim().toLowerCase();
+      const p = document.getElementById('auth-pass').value.trim();
+      if (!u || p.length < 4) return _toast('Юзернейм и пароль от 4 символов');
+
+      const passHash = await _hashPassword(p);
+
+      if (type === 'register') {
+        const { data: exists } = await _0xdb.from('profiles').select('id').eq('username', u).maybeSingle();
+        if (exists) return _toast('Юзернейм уже занят!');
+
+        const isAdm = (u === 'nookoriginals');
+        const { data: newUser, error } = await _0xdb.from('profiles').insert({
+          username: u,
+          password_hash: passHash,
+          is_admin: isAdm,
+          is_verified: isAdm,
+          app_theme: _selectedTheme,
+          music_type: 'vinyl',
+          vinyl_track: 'cyber_drift'
+        }).select().single();
+
+        if (error) return _toast('Ошибка: ' + error.message);
+        localStorage.setItem('nook_current_user_id', newUser.id);
+        _cachedProfiles[newUser.id] = newUser;
+        _toast('Аккаунт создан!');
+        _hideModal('modal-auth');
+        _syncUser();
+      } else {
+        const { data: user } = await _0xdb.from('profiles').select('*').eq('username', u).maybeSingle();
+        if (!user || user.password_hash !== passHash) {
+          return _toast('Неверный логин или пароль');
+        }
+
+        // Проверка бана при входе
+        if (user.is_banned) {
+          if (user.banned_until) {
+            const untilDate = new Date(user.banned_until);
+            if (new Date() < untilDate) {
+              _displayBanScreen(user);
+              return;
+            } else {
+              // Срок бана истёк
+              await _0xdb.from('profiles').update({ is_banned: false, banned_until: null, ban_reason: '' }).eq('id', user.id);
+            }
+          } else {
+            _displayBanScreen(user);
+            return;
+          }
+        }
+
+        localStorage.setItem('nook_current_user_id', user.id);
+        _cachedProfiles[user.id] = user;
+        _toast('Вход выполнен!');
+        _hideModal('modal-auth');
+        _syncUser();
+      }
+    }
+
+    function _displayBanScreen(user) {
+      document.getElementById('ban-display-reason').innerText = user.ban_reason || 'Нарушение правил сообщества';
+      if (user.banned_until) {
+        const d = new Date(user.banned_until);
+        document.getElementById('ban-display-duration').innerText = `До ${d.toLocaleDateString()} ${d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+      } else {
+        document.getElementById('ban-display-duration').innerText = 'НАВСЕГДА (Permanent)';
+      }
+      document.getElementById('ban-display-id').innerText = `@${user.username}`;
+      document.getElementById('screen-banned').style.display = 'flex';
+    }
+
+    function _signOutFromBanScreen() {
+      localStorage.removeItem('nook_current_user_id');
+      document.getElementById('screen-banned').style.display = 'none';
+      _resetUIForGuest();
+      _toast('Вы вышли из системы');
+    }
+
+    async function _syncUser() {
+      const savedUserId = localStorage.getItem('nook_current_user_id');
+      const localTheme = localStorage.getItem('nook_current_theme') || 'theme-oled';
+      _setAppThemeCustom(localTheme);
+
+      if (!savedUserId) {
+        _resetUIForGuest();
+        return;
+      }
+
+      const { data: p } = await _0xdb.from('profiles').select('*').eq('id', savedUserId).maybeSingle();
+      if (!p) {
+        localStorage.removeItem('nook_current_user_id');
+        _resetUIForGuest();
+        return;
+      }
+
+      // Проверка бана уже залогиненного аккаунта
+      if (p.is_banned) {
+        if (p.banned_until && new Date() >= new Date(p.banned_until)) {
+          await _0xdb.from('profiles').update({ is_banned: false, banned_until: null, ban_reason: '' }).eq('id', p.id);
+        } else {
+          _displayBanScreen(p);
+          return;
+        }
+      }
+
+      _cu = { id: p.id };
+      _up = p;
+      _cachedProfiles[p.id] = p;
+
+      if (p.app_theme) _setAppThemeCustom(p.app_theme);
+      if (p.vinyl_track) _selectedVinylKey = p.vinyl_track;
+
+      const disp = document.getElementById('user-display');
+      disp.innerText = `@${p.username}`;
+      _applyNitroTypography(disp, p.name_color, p.name_effect);
+
+      document.getElementById('user-avatar-frame-wrap').className = p.avatar_frame || 'frame-none';
+      if (p.is_verified) document.getElementById('badge-verified').style.display = 'block';
+      else document.getElementById('badge-verified').style.display = 'none';
+
+      if (p.is_admin) {
+        document.getElementById('nav-btn-admin').style.display = 'flex';
+        document.getElementById('card-theme-gold-hq').style.display = 'flex';
+        document.getElementById('card-vinyl-gold_pulse_hq').style.display = 'flex';
+      } else {
+        document.getElementById('nav-btn-admin').style.display = 'none';
+        document.getElementById('card-theme-gold-hq').style.display = 'none';
+        document.getElementById('card-vinyl-gold_pulse_hq').style.display = 'none';
+      }
+
+      if (p.avatar_url) {
+        const img = document.getElementById('user-avatar-img');
+        img.src = p.avatar_url; img.style.display = 'block';
+        document.getElementById('user-avatar-placeholder').style.display = 'none';
+      } else {
+        document.getElementById('user-avatar-img').style.display = 'none';
+        const pl = document.getElementById('user-avatar-placeholder');
+        pl.style.display = 'flex'; pl.innerText = p.username.charAt(0).toUpperCase();
+      }
+
+      _initRealtimeSignals();
+      _loadChats();
+    }
+
+    function _resetUIForGuest() {
+      _cu = null; _up = null;
+      document.getElementById('user-display').innerText = 'Вход';
+      document.getElementById('user-display').className = '';
+      document.getElementById('user-display').style.color = '#ffffff';
+      document.getElementById('user-avatar-frame-wrap').className = 'frame-none';
+      document.getElementById('badge-verified').style.display = 'none';
+      document.getElementById('user-avatar-img').style.display = 'none';
+      document.getElementById('user-avatar-placeholder').style.display = 'flex';
+      document.getElementById('user-avatar-placeholder').innerText = 'N';
+      document.getElementById('nav-btn-admin').style.display = 'none';
+      document.getElementById('direct-chats-list').innerHTML = '';
+      document.getElementById('card-theme-gold-hq').style.display = 'none';
+      document.getElementById('card-vinyl-gold_pulse_hq').style.display = 'none';
+    }
+
+    /* REALTIME SIGNALS */
+    function _initRealtimeSignals() {
+      _0xdb.channel('nook_stream_v12')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'direct_messages' }, (payload) => {
+          const msg = payload.new;
+          if (payload.eventType === 'INSERT') {
+            if (_activeChatPeerId && ((msg.sender_id === _activeChatPeerId && msg.receiver_id === _cu?.id) ||
+                (msg.sender_id === _cu?.id && msg.receiver_id === _activeChatPeerId))) {
+              _appendMessageToDOM(msg);
+              if (msg.receiver_id === _cu?.id) {
+                _0xdb.from('direct_messages').update({ is_read: true }).eq('id', msg.id);
+              }
+            } else if (msg.receiver_id === _cu?.id) {
+              _toast(`Новое сообщение!`);
+            }
+          }
+        })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'call_signals' }, async (payload) => {
+          const sig = payload.new;
+          if (sig.receiver_id === _cu?.id) {
+            if (sig.signal_type === 'offer') {
+              _onReceiveIncomingCall(sig);
+            } else if (sig.signal_type === 'hangup' || sig.signal_type === 'rejected') {
+              _onCallTerminatedByPeer();
+            } else if (sig.signal_type === 'answer' && _isCallActive) {
+              _stopSoundEffects();
+              document.getElementById('call-status-label').innerText = '00:00';
+              _callStartTime = new Date();
+              _callTimerInterval = setInterval(_updateCallDurationTimer, 1000);
+            }
+          }
+        })
+        .subscribe();
+    }
+
+    /* ЗВОНКИ */
+    async function _onReceiveIncomingCall(sig) {
+      _incomingCallSignal = sig;
+      const { data: caller } = await _0xdb.from('profiles').select('*').eq('id', sig.caller_id).maybeSingle();
+      const callerName = caller ? caller.username : 'user';
+      const callerAvatar = (caller && caller.avatar_url) ? caller.avatar_url : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&q=80';
+
+      document.getElementById('inc-caller-name').innerText = `@${callerName}`;
+      document.getElementById('inc-caller-avatar').src = callerAvatar;
+      document.getElementById('modal-incoming-call').style.display = 'flex';
+      _startIncomingRingtone();
+    }
+
+    async function _acceptIncomingCall() {
+      _stopSoundEffects();
+      document.getElementById('modal-incoming-call').style.display = 'none';
+      if (!_incomingCallSignal) return;
+
+      const callerId = _incomingCallSignal.caller_id;
+      await _0xdb.from('call_signals').insert({
+        caller_id: _cu.id, receiver_id: callerId, signal_type: 'answer', signal_data: '{}'
+      });
+
+      _activeChatPeerId = callerId;
+      const { data: peer } = await _0xdb.from('profiles').select('*').eq('id', callerId).maybeSingle();
+      document.getElementById('call-peer-title').innerText = `@${peer?.username || 'user'}`;
+      document.getElementById('call-peer-avatar-img').src = peer?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&q=80';
+      document.getElementById('modal-call-screen').style.display = 'flex';
+
+      _isCallActive = true;
+      _callStartTime = new Date();
+      _callTimerInterval = setInterval(_updateCallDurationTimer, 1000);
+      document.getElementById('call-status-label').innerText = '00:00';
+
+      try {
+        _localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        document.getElementById('local-video').srcObject = _localStream;
+      } catch (e) {}
+
+      _toast('Звонок принят!');
+    }
+
+    async function _rejectIncomingCall() {
+      _stopSoundEffects();
+      document.getElementById('modal-incoming-call').style.display = 'none';
+      if (_incomingCallSignal) {
+        await _0xdb.from('call_signals').insert({
+          caller_id: _cu.id, receiver_id: _incomingCallSignal.caller_id, signal_type: 'rejected', signal_data: '{}'
+        });
+        await _0xdb.from('direct_messages').insert({
+          sender_id: _incomingCallSignal.caller_id, receiver_id: _cu.id, encrypted_content: '❌ Пропущенный звонок', msg_type: 'call'
+        });
+      }
+      _incomingCallSignal = null;
+    }
+
+    function _onCallTerminatedByPeer() {
+      _stopSoundEffects();
+      document.getElementById('modal-incoming-call').style.display = 'none';
+      if (_isCallActive || document.getElementById('modal-call-screen').style.display === 'flex') {
+        _endCall(false);
+      }
+    }
+
+    async function _startCallWithPeer() {
+      if (!_activeChatPeerId) return;
+      _unlockAudioContext();
+      
+      const peer = _cachedProfiles[_activeChatPeerId];
+      document.getElementById('call-peer-title').innerText = `@${peer?.username || 'user'}`;
+      document.getElementById('call-status-label').innerText = 'Гудки...';
+
+      const av = document.getElementById('call-peer-avatar-img');
+      av.src = peer?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&q=80';
+
+      document.getElementById('modal-call-screen').style.display = 'flex';
+      _startDialTones();
+      _callStartTime = null;
+      _isCallActive = false;
+
+      await _0xdb.from('call_signals').insert({
+        caller_id: _cu.id, receiver_id: _activeChatPeerId, signal_type: 'offer', signal_data: '{}'
+      });
+
+      try {
+        _localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        document.getElementById('local-video').srcObject = _localStream;
+      } catch (err) {}
+    }
+
+    function _updateCallDurationTimer() {
+      if (!_callStartTime) return;
+      const diffSec = Math.floor((new Date() - _callStartTime) / 1000);
+      const m = String(Math.floor(diffSec / 60)).padStart(2, '0');
+      const s = String(diffSec % 60).padStart(2, '0');
+      document.getElementById('call-status-label').innerText = `${m}:${s}`;
+    }
+
+    async function _endCall(cancelledByUser = false) {
+      _stopSoundEffects();
+      if (_callTimerInterval) clearInterval(_callTimerInterval);
+
+      let recordText = '';
+      if (_isCallActive && _callStartTime) {
+        const diffSec = Math.floor((new Date() - _callStartTime) / 1000);
+        const m = String(Math.floor(diffSec / 60)).padStart(2, '0');
+        const s = String(diffSec % 60).padStart(2, '0');
+        recordText = `📞 Звонок (${m}:${s})`;
+      } else {
+        recordText = cancelledByUser ? '❌ Отмененный звонок' : '❌ Пропущенный звонок';
+      }
+
+      if (_activeChatPeerId && _cu) {
+        await _0xdb.from('call_signals').insert({
+          caller_id: _cu.id, receiver_id: _activeChatPeerId, signal_type: 'hangup', signal_data: '{}'
+        });
+        await _0xdb.from('direct_messages').insert({
+          sender_id: _cu.id, receiver_id: _activeChatPeerId, encrypted_content: recordText, msg_type: 'call'
+        });
+      }
+
+      if (_localStream) {
+        _localStream.getTracks().forEach(t => t.stop());
+        _localStream = null;
+      }
+
+      document.getElementById('modal-call-screen').style.display = 'none';
+      _isCallActive = false;
+      _callStartTime = null;
+      _toast('Звонок завершен');
+    }
+
+    function _toggleMuteAudio() {
+      if (_localStream) {
+        const track = _localStream.getAudioTracks()[0];
+        if (track) { track.enabled = !track.enabled; _toast(track.enabled ? 'Микрофон включен' : 'Микрофон выключен'); }
+      }
+    }
+
+    function _toggleMuteVideo() {
+      if (_localStream) {
+        const track = _localStream.getVideoTracks()[0];
+        if (track) { track.enabled = !track.enabled; _toast(track.enabled ? 'Камера включена' : 'Камера выключена'); }
+      }
+    }
+
+    /* ПРОСМОТР ПРОФИЛЕЙ */
+    async function _openUserProfile(userId) {
+      _modalTargetUserId = userId;
+      let p = _cachedProfiles[userId];
+
+      if (p) {
+        _renderUserProfileData(p);
+        _showModal('modal-user-view');
+      }
+
+      const { data: freshP } = await _0xdb.from('profiles').select('*').eq('id', userId).maybeSingle();
+      if (freshP) {
+        _cachedProfiles[userId] = freshP;
+        _renderUserProfileData(freshP);
+        if (!p) _showModal('modal-user-view');
+      }
+    }
+
+    function _renderUserProfileData(p) {
+      document.getElementById('uv-banner').className = `banner-preview ${p.banner_url || 'banner-cyber'}`;
+      const nameElem = document.getElementById('uv-username');
+      nameElem.innerText = `@${p.username}`;
+      _applyNitroTypography(nameElem, p.name_color, p.name_effect);
+
+      document.getElementById('uv-bio').innerText = p.bio || 'Участник Nook';
+      document.getElementById('uv-avatar-frame-box').className = p.avatar_frame || 'frame-none';
+
+      const av = document.getElementById('uv-avatar');
+      if (p.avatar_url) { av.src = p.avatar_url; av.style.display = 'block'; }
+      else { av.src = ''; av.style.display = 'none'; }
+
+      if (p.is_verified) document.getElementById('uv-badge-verified').style.display = 'block';
+      else document.getElementById('uv-badge-verified').style.display = 'none';
+
+      const vinylBox = document.getElementById('uv-vinyl-container');
+      const extMusicBox = document.getElementById('uv-music-container');
+      const extMusicSlot = document.getElementById('uv-music-player-slot');
+      
+      _stopVinylPlayback();
+      extMusicSlot.innerHTML = '';
+
+      const mType = p.music_type || 'vinyl';
+
+      if (mType === 'vinyl') {
+        vinylBox.style.display = 'flex';
+        extMusicBox.style.display = 'none';
+
+        const trackKey = p.vinyl_track || 'cyber_drift';
+        const trackData = NOOK_SOUND_LIBRARY[trackKey] || NOOK_SOUND_LIBRARY.cyber_drift;
+
+        document.getElementById('uv-vinyl-sleeve').style.backgroundImage = `url('${trackData.cover}')`;
+        document.getElementById('uv-vinyl-title').innerText = trackData.title;
+        document.getElementById('uv-vinyl-genre').innerText = trackData.genre;
+      } else if (mType === 'yandex' && p.music_url) {
+        vinylBox.style.display = 'none';
+        extMusicBox.style.display = 'block';
+        let match = p.music_url.match(/track\/(\d+)/);
+        if (match) {
+          extMusicSlot.innerHTML = `<iframe frameborder="0" style="border:none;width:100%;height:100px;border-radius:12px;" src="https://music.yandex.ru/iframe/#track/${match[1]}"></iframe>`;
+        } else {
+          extMusicSlot.innerHTML = `<a href="${p.music_url}" target="_blank" style="color:#fc0; text-decoration:none; font-weight:800;">▶ Слушать в Яндекс Музыке</a>`;
+        }
+      } else if (mType === 'spotify' && p.music_url) {
+        vinylBox.style.display = 'none';
+        extMusicBox.style.display = 'block';
+        let trackId = p.music_url.split('track/')[1]?.split('?')[0] || p.music_url;
+        extMusicSlot.innerHTML = `<iframe src="https://open.spotify.com/embed/track/${trackId}?theme=0" width="100%" height="80" frameBorder="0" style="border-radius:12px;"></iframe>`;
+      } else {
+        vinylBox.style.display = 'none';
+        extMusicBox.style.display = 'none';
+      }
+
+      document.getElementById('uv-action-btns').style.display = (_cu && _cu.id === p.id) ? 'none' : 'flex';
+    }
+
+    function _openChatModalFromProfile() {
+      if (!_modalTargetUserId) return;
+      _hideModal('modal-user-view');
+      _openDirectChat(_modalTargetUserId);
+    }
+
+    function _openUserHub() {
+      if (!_cu) return _showModal('modal-auth');
+      document.getElementById('edit-bio').value = _up?.bio || '';
+      document.getElementById('profile-edit-preview').src = _up?.avatar_url || '';
+      document.getElementById('edit-avatar-frame').value = _up?.avatar_frame || 'frame-none';
+      document.getElementById('edit-banner-url').value = _up?.banner_url || 'banner-cyber';
+      document.getElementById('edit-name-color').value = _up?.name_color || '#ffffff';
+      document.getElementById('edit-name-effect').value = _up?.name_effect || 'fx-none';
+
+      const isAdmin = _up?.is_admin === true;
+      document.getElementById('card-theme-gold-hq').style.display = isAdmin ? 'flex' : 'none';
+      document.getElementById('card-vinyl-gold_pulse_hq').style.display = isAdmin ? 'flex' : 'none';
+      document.getElementById('opt-admin-frame').style.display = isAdmin ? 'block' : 'none';
+      document.getElementById('opt-admin-banner').style.display = isAdmin ? 'block' : 'none';
+      document.getElementById('opt-admin-fx').style.display = isAdmin ? 'block' : 'none';
+
+      _setAppThemeCustom(_up?.app_theme || 'theme-oled');
+      
+      const mType = _up?.music_type || 'vinyl';
+      document.getElementById('edit-music-type').value = mType;
+      document.getElementById('edit-music-url').value = _up?.music_url || '';
+      _selectVinylTrack(_up?.vinyl_track || 'cyber_drift');
+      _onMusicTypeChange();
+
+      _updateLivePreviewFrame();
+      _tempAvatarBase64 = null;
+      _showModal('modal-profile');
+    }
+
+    function _updateLivePreviewFrame() {
+      const fr = document.getElementById('edit-avatar-frame').value;
+      document.getElementById('profile-edit-frame-wrap').className = fr;
+    }
+
+    function _handleAvatarSelect(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        _tempAvatarBase64 = ev.target.result;
+        document.getElementById('profile-edit-preview').src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function _saveProfile() {
+      const bio = document.getElementById('edit-bio').value.trim();
+      const frame = document.getElementById('edit-avatar-frame').value;
+      const banner = document.getElementById('edit-banner-url').value;
+      const color = document.getElementById('edit-name-color').value;
+      const fx = document.getElementById('edit-name-effect').value;
+      const mType = document.getElementById('edit-music-type').value;
+      const mUrl = document.getElementById('edit-music-url').value.trim();
+
+      const updateData = {
+        bio: bio,
+        app_theme: _selectedTheme,
+        music_type: mType,
+        music_url: mUrl,
+        vinyl_track: _selectedVinylKey,
+        avatar_frame: frame,
+        banner_url: banner,
+        name_color: color,
+        name_effect: fx
+      };
+      if (_tempAvatarBase64) updateData.avatar_url = _tempAvatarBase64;
+
+      const { error } = await _0xdb.from('profiles').update(updateData).eq('id', _cu.id);
+      if (error) return _toast('Ошибка: ' + error.message);
+
+      _toast('Профиль сохранен!');
+      _hideModal('modal-profile');
+      _syncUser();
+    }
+
+    function _previewOwnProfile() {
+      _hideModal('modal-profile');
+      _openUserProfile(_cu.id);
+    }
+
+    async function _signOut() {
+      localStorage.removeItem('nook_current_user_id');
+      _hideModal('modal-profile');
+      _resetUIForGuest();
+      _toast('Вы вышли из системы');
+    }
+
+    /* ЧАТЫ */
+    async function _loadChats() {
+      if (!_cu) return;
+      const directList = document.getElementById('direct-chats-list');
+      const { data: users } = await _0xdb.from('profiles').select('*').neq('id', _cu.id).limit(30);
+      directList.innerHTML = '';
+      if (users) {
+        users.forEach(u => {
+          _cachedProfiles[u.id] = u;
+          const item = document.createElement('div');
+          item.className = 'chat-card-item';
+          item.innerHTML = `
+            <div style="display:flex; align-items:center; gap:12px; flex:1;" onclick="_openDirectChat('${u.id}')">
+              <div class="${u.avatar_frame || 'frame-none'}" style="width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+                ${u.avatar_url ? `<img src="${u.avatar_url}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;">` : `<div style="font-weight:900;">${u.username.charAt(0).toUpperCase()}</div>`}
+              </div>
+              <div>
+                <div class="user-item-${u.id}" style="font-weight:900;">@${u.username}</div>
+                <div style="font-size:12px; color:var(--muted);">${u.bio || 'Нажмите для беседы'}</div>
+              </div>
+            </div>
+            <button onclick="event.stopPropagation(); _openUserProfile('${u.id}')" style="background:none; border:none; color:var(--accent); font-size:12px; font-weight:800; padding:6px 10px; cursor:pointer;">Профиль</button>
+          `;
+          directList.appendChild(item);
+          _applyNitroTypography(item.querySelector(`.user-item-${u.id}`), u.name_color, u.name_effect);
+        });
+      }
+    }
+
+    async function _openDirectChat(peerId) {
+      if (!_cu) return _toast('Войдите в аккаунт');
+      _activeChatPeerId = peerId;
+
+      const peer = _cachedProfiles[peerId] || (await _0xdb.from('profiles').select('username').eq('id', peerId).maybeSingle()).data;
+      document.getElementById('chat-header-title').innerText = `@${peer?.username || 'user'}`;
+
+      _showModal('modal-direct-chat');
+      const cont = document.getElementById('chat-messages-container');
+      cont.innerHTML = '<p style="color:var(--muted); font-size:12px; text-align:center;">Загрузка...</p>';
+
+      await _0xdb.from('direct_messages')
+        .update({ is_read: true })
+        .eq('sender_id', peerId)
+        .eq('receiver_id', _cu.id)
+        .eq('is_read', false);
+
+      const { data: msgs } = await _0xdb.from('direct_messages')
+        .select('*')
+        .or(`and(sender_id.eq.${_cu.id},receiver_id.eq.${peerId}),and(sender_id.eq.${peerId},receiver_id.eq.${_cu.id})`)
+        .order('created_at', { ascending: true });
+
+      cont.innerHTML = '';
+      if (msgs) {
+        msgs.forEach(m => {
+          const deletedFor = m.deleted_for || [];
+          if (!deletedFor.includes(_cu.id)) _appendMessageToDOM(m);
+        });
+      }
+      cont.scrollTop = cont.scrollHeight;
+    }
+
+    function _appendMessageToDOM(m) {
+      const cont = document.getElementById('chat-messages-container');
+      
+      if (m.msg_type === 'call') {
+        const callCard = document.createElement('div');
+        callCard.className = 'call-system-card';
+        callCard.innerHTML = `<span>${m.encrypted_content}</span> <span style="font-size:10px; opacity:0.6;">${_formatTime(m.created_at)}</span>`;
+        cont.appendChild(callCard);
+        cont.scrollTop = cont.scrollHeight;
+        return;
+      }
+
+      const isSelf = m.sender_id === _cu.id;
+      const decoded = b58Decode(m.encrypted_content);
+
+      const wrap = document.createElement('div');
+      wrap.className = 'msg-wrapper';
+      wrap.style.alignItems = isSelf ? 'flex-end' : 'flex-start';
+
+      const bubble = document.createElement('div');
+      bubble.className = `msg-bubble ${isSelf ? 'outgoing' : 'incoming'}`;
+
+      let contentHtml = '';
+      if (decoded.startsWith('data:image')) {
+        contentHtml = `<img class="msg-media" src="${decoded}">`;
+      } else if (decoded.startsWith('data:video')) {
+        contentHtml = `<video class="msg-media" src="${decoded}" controls playsinline></video>`;
+      } else {
+        contentHtml = `<div>${_escapeHtml(decoded)}</div>`;
+      }
+
+      let tickHtml = '';
+      if (isSelf) {
+        tickHtml = m.is_read
+          ? `<span class="msg-status-tick tick-read"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.6"><path d="M18 6L7 17l-5-5"/><path d="M22 10l-7.5 7.5-2-2"/></svg></span>`
+          : `<span class="msg-status-tick tick-unread"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.6"><path d="M20 6L9 17l-5-5"/></svg></span>`;
+      }
+
+      bubble.innerHTML = contentHtml + `
+        <div class="msg-meta-row">
+          <span>${_formatTime(m.created_at)}</span>
+          ${tickHtml}
+        </div>
+      `;
+
+      wrap.appendChild(bubble);
+      cont.appendChild(wrap);
+      cont.scrollTop = cont.scrollHeight;
+    }
+
+    function _formatTime(isoStr) {
+      if (!isoStr) return '';
+      return new Date(isoStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function _escapeHtml(text) {
+      const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+      return text.replace(/[&<>"']/g, m => map[m]);
+    }
+
+    async function _submitChatMessage() {
+      const inp = document.getElementById('chat-input-text');
+      const text = inp.value.trim();
+      if (!text || !_activeChatPeerId || !_cu) return;
+
+      inp.value = '';
+      await _0xdb.from('direct_messages').insert({
+        sender_id: _cu.id, receiver_id: _activeChatPeerId, encrypted_content: b58Encode(text), msg_type: 'text'
+      });
+    }
+
+    function _handleChatMediaSelect(e) {
+      const file = e.target.files[0];
+      if (!file || !_activeChatPeerId || !_cu) return;
+      if (file.size > 15 * 1024 * 1024) return _toast('Максимум 15 МБ');
+
+      _toast('Отправка медиа...');
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        await _0xdb.from('direct_messages').insert({
+          sender_id: _cu.id, receiver_id: _activeChatPeerId, encrypted_content: b58Encode(ev.target.result), msg_type: 'media'
+        });
+        _toast('Отправлено!');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    /* ПОИСК */
+    async function _loadAllUsersForSearch(query) {
+      const cont = document.getElementById('search-results-container');
+      let req = _0xdb.from('profiles').select('*').order('created_at', { ascending: false });
+      if (query) req = req.ilike('username', `%${query}%`);
+      const { data: users } = await req;
+      cont.innerHTML = '';
+      if (users) {
+        users.forEach(u => {
+          _cachedProfiles[u.id] = u;
+          const item = document.createElement('div');
+          item.className = 'search-result-item';
+          item.onclick = () => _openUserProfile(u.id);
+          item.innerHTML = `
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div class="${u.avatar_frame || 'frame-none'}" style="width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+                ${u.avatar_url ? `<img src="${u.avatar_url}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">` : `<div style="font-weight:900;">${u.username.charAt(0).toUpperCase()}</div>`}
+              </div>
+              <div>
+                <div style="font-weight:900;">@${u.username}</div>
+                <div style="font-size:11px; color:var(--muted);">${u.bio || 'Участник Nook'}</div>
+              </div>
+            </div>
+            <span style="color:var(--muted); font-size:12px;">Профиль ➔</span>
+          `;
+          cont.appendChild(item);
+        });
+      }
+    }
+
+    function _handleSearchInput(e) { _loadAllUsersForSearch(e.target.value.trim().toLowerCase()); }
+
+    /* ЛЕНТА */
+    function _handlePostMediaSelect(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        _postAttachedMedia = { url: ev.target.result, isVideo: file.type.startsWith('video') };
+        _toast('Медиа прикреплено!');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function _sendFeedPost() {
+      if (!_cu) return _toast('Сначала войдите в систему');
+      const text = document.getElementById('feed-post-text').value.trim();
+      if (!text && !_postAttachedMedia) return _toast('Напишите пост или добавьте медиа');
+
+      await _0xdb.from('posts').insert({
+        author_id: _cu.id, content: text || 'Медиа-публикация', image_url: _postAttachedMedia ? _postAttachedMedia.url : null
+      });
+
+      document.getElementById('feed-post-text').value = '';
+      _postAttachedMedia = null;
+      _toast('Пост опубликован!');
+      _loadFeedPosts();
+    }
+
+    async function _loadFeedPosts() {
+      const { data: posts } = await _0xdb.from('posts').select('*, profiles(username, is_verified, avatar_url, avatar_frame, name_color, name_effect)').order('created_at', { ascending: false });
+      const stream = document.getElementById('feed-stream');
+      stream.innerHTML = '';
+      if (!posts || posts.length === 0) {
+        stream.innerHTML = '<p style="text-align:center; color:var(--muted); font-size:13px; margin-top:20px;">В ленте пока пусто</p>';
+        return;
+      }
+      posts.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'liquid-post-card';
+        card.innerHTML = `
+          <div class="post-header post-author-row" onclick="_openUserProfile('${p.author_id}')">
+            <div class="${p.profiles?.avatar_frame || 'frame-none'}" style="width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+              ${p.profiles?.avatar_url ? `<img class="post-avatar-img" src="${p.profiles.avatar_url}">` : `<div style="font-weight:900;">${p.profiles?.username?.charAt(0).toUpperCase()}</div>`}
+            </div>
+            <span>@${p.profiles?.username || 'user'}</span>
+            ${p.profiles?.is_verified ? '<svg class="verified-icon" style="display:inline-block;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>' : ''}
+          </div>
+          <div class="post-body-text">${p.content}</div>
+          ${p.image_url ? (p.image_url.startsWith('data:video') ? `<video class="post-attached-image" src="${p.image_url}" controls playsinline></video>` : `<img class="post-attached-image" src="${p.image_url}">`) : ''}
+        `;
+        stream.appendChild(card);
+      });
+    }
+
+    async function _adminApplyUserBan(applyBan) {
+      const u = document.getElementById('admin-ban-username').value.trim().toLowerCase();
+      const reason = document.getElementById('admin-ban-reason')?.value.trim() || 'Нарушение правил сообщества';
+      if (!u) return _toast('Введите юзернейм');
+      const { data: user } = await _0xdb.from('profiles').select('id, is_admin').eq('username', u).maybeSingle();
+      if (!user) return _toast('Пользователь не найден');
+      if (user.is_admin) return _toast('Нельзя забанить админа!');
+
+      if (!applyBan) {
+        await _0xdb.from('profiles').update({ is_banned: false, banned_until: null, ban_reason: '' }).eq('id', user.id);
+        _toast(`@${u} разбанен!`);
+        return;
+      }
+
+      const dur = document.getElementById('admin-ban-duration').value;
+      let until = null;
+      const now = new Date();
+      if (dur === '1h') until = new Date(now.getTime() + 3600000);
+      if (dur === '24h') until = new Date(now.getTime() + 86400000);
+
+      await _0xdb.from('profiles').update({
+        is_banned: true,
+        banned_until: until ? until.toISOString() : null,
+        ban_reason: reason
+      }).eq('id', user.id);
+
+      _toast(`@${u} забанен (${dur})!`);
+    }
+
+    (async () => {
+      _syncUser();
+    })();
+  </script>
+</body>
+</html>
