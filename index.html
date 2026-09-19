@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Nook Social & Music</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg: #090c10;
+      --card-bg: rgba(18, 22, 30, 0.92);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --text: #ffffff;
+      --muted: #8b949e;
+      --accent: #2481cc;
+      --bubble-out: #1f4068;
+      --bubble-in: #161b22;
+      --danger: #f85149;
+      --success: #2ea043;
+      --gold: #ffd700;
+      --spring: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    body.theme-oled {
+      --bg: #000000;
+      --card-bg: rgba(14, 14, 18, 0.96);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --bubble-out: #1b3a5b;
+      --bubble-in: #11141a;
+      --accent: #0a84ff;
+    }
+    body.theme-cyber {
+      --bg: #0c021f;
+      --card-bg: rgba(24, 8, 48, 0.92);
+      --card-border: rgba(0, 240, 255, 0.25);
+      --accent: #00f0ff;
+      --bubble-out: #380b61;
+      --bubble-in: #1a082e;
+    }
+    body.theme-space {
+      --bg: #020817;
+      --card-bg: rgba(10, 22, 48, 0.92);
+      --card-border: rgba(56, 189, 248, 0.2);
+      --accent: #38bdf8;
+      --bubble-out: #1e3a8a;
+      --bubble-in: #0f172a;
+    }
+    body.theme-gold-hq {
+      --bg: #120e03;
+      --card-bg: rgba(38, 30, 10, 0.94);
+      --card-border: rgba(255, 215, 0, 0.3);
+      --accent: #ffd700;
+      --bubble-out: #523e02;
+      --bubble-in: #241c03;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      overflow: hidden;
+      transition: background 0.3s ease;
+    }
+
+    .avatar-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      flex-shrink: 0;
+      box-sizing: border-box;
+    }
+    .avatar-inner-img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .frame-none { border: none !important; box-shadow: none !important; }
+    .frame-neon { border: 2.5px solid #00f0ff !important; box-shadow: 0 0 10px #00f0ff !important; }
+    .frame-cyber { border: 2.5px dashed #f43f5e !important; box-shadow: 0 0 12px #f43f5e !important; }
+    .frame-fire { border: 2.5px solid #ff7b00 !important; box-shadow: 0 0 12px #ff3700 !important; }
+    .frame-ice { border: 2.5px solid #7dd3fc !important; box-shadow: 0 0 10px #38bdf8 !important; }
+    .frame-gold { border: 2.5px solid #fbbf24 !important; box-shadow: 0 0 12px rgba(251, 191, 36, 0.8) !important; }
+    .frame-matrix-hq { border: 2.5px solid #10b981 !important; box-shadow: 0 0 14px #059669 !important; }
+
+    header {
+      position: relative;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 10px 16px;
+      padding-top: max(10px, env(safe-area-inset-top));
+      background: rgba(16, 20, 28, 0.9);
+      backdrop-filter: blur(25px);
+      border-bottom: 1px solid var(--card-border);
+    }
+    .header-top { display: flex; align-items: center; justify-content: space-between; }
+    .brand-title { font-size: 21px; font-weight: 900; letter-spacing: -0.04em; }
+    .btn-icon {
+      background: rgba(255, 255, 255, 0.06); border: 1px solid var(--card-border); color: #fff;
+      width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: transform 0.2s var(--spring);
+    }
+    .btn-icon:active { transform: scale(0.9); }
+    .btn-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; }
+
+    .user-pill {
+      display: flex; align-items: center; gap: 8px; padding: 4px 12px 4px 4px;
+      background: rgba(255, 255, 255, 0.08); border: 1px solid var(--card-border);
+      border-radius: 9999px; cursor: pointer; transition: transform 0.2s var(--spring);
+    }
+    .user-pill:active { transform: scale(0.95); }
+
+    .top-search-bar {
+      display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--card-border); border-radius: 14px; padding: 8px 12px;
+    }
+    .top-search-bar input { flex: 1; background: transparent; border: none; outline: none; color: #fff; font-size: 14px; user-select: text; }
+
+    main { flex: 1; position: relative; overflow: hidden; }
+    .tab-view { position: absolute; inset: 0; display: none; flex-direction: column; overflow-y: auto; padding: 14px; gap: 12px; }
+    .tab-view.active { display: flex; animation: viewIn 0.25s var(--spring); }
+    @keyframes viewIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+
+    /* МУЗЫКАЛЬНЫЙ РАЗДЕЛ */
+    .music-track-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      cursor: pointer;
+      transition: transform 0.2s var(--spring), background 0.2s;
+    }
+    .music-track-item:active { transform: scale(0.98); }
+    .music-track-item.playing { border-color: var(--accent); background: rgba(36, 129, 204, 0.18); }
+    .track-thumb { width: 48px; height: 48px; border-radius: 12px; object-fit: cover; flex-shrink: 0; }
+
+    /* МИНИ-ПЛЕЕР НАД МЕНЮ */
+    #mini-audio-bar {
+      display: none;
+      position: relative;
+      z-index: 60;
+      margin: 0 14px 8px;
+      padding: 8px 14px;
+      background: rgba(22, 28, 38, 0.96);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      backdrop-filter: blur(25px);
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+      cursor: pointer;
+      animation: viewIn 0.3s var(--spring);
+    }
+    .mini-waves-wrap { display: flex; align-items: flex-end; gap: 3px; height: 16px; }
+    .mini-wave { width: 3px; height: 4px; border-radius: 2px; background: var(--accent); }
+    #mini-audio-bar.playing .mini-wave:nth-child(1) { animation: waveHop 0.6s infinite alternate; }
+    #mini-audio-bar.playing .mini-wave:nth-child(2) { animation: waveHop 0.8s infinite alternate 0.2s; }
+    #mini-audio-bar.playing .mini-wave:nth-child(3) { animation: waveHop 0.5s infinite alternate 0.1s; }
+    @keyframes waveHop { from { height: 4px; } to { height: 16px; } }
+
+    /* ПОЛНОЭКРАННЫЙ ПЛЕЕР */
+    #modal-full-player {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 12, 16, 0.98);
+      backdrop-filter: blur(40px);
+      z-index: 300;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: max(20px, env(safe-area-inset-top)) 24px max(30px, env(safe-area-inset-bottom));
+      animation: playerSlide 0.3s var(--spring);
+    }
+    @keyframes playerSlide { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+    .chat-subtabs-row { display: flex; gap: 8px; background: rgba(255, 255, 255, 0.05); padding: 4px; border-radius: 9999px; }
+    .chat-subtab-btn { flex: 1; border: none; background: transparent; color: var(--muted); font-size: 12px; font-weight: 800; padding: 8px; border-radius: 9999px; cursor: pointer; }
+    .chat-subtab-btn.active { background: #ffffff; color: #000000; }
+
+    .chat-item {
+      display: flex; align-items: center; justify-content: space-between; padding: 12px 14px;
+      background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 18px; cursor: pointer;
+      transition: transform 0.2s var(--spring);
+    }
+    .chat-item:active { transform: scale(0.98); }
+
+    .post-composer { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .post-textarea { background: transparent; border: none; outline: none; color: #fff; font-size: 15px; resize: none; min-height: 50px; user-select: text; }
+    .btn-pill { background: #ffffff; color: #000000; border: none; padding: 8px 18px; border-radius: 9999px; font-size: 13px; font-weight: 800; cursor: pointer; transition: transform 0.2s var(--spring); }
+    .btn-pill:active { transform: scale(0.93); }
+    .post-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .post-media-content { width: 100%; border-radius: 14px; max-height: 360px; object-fit: cover; }
+
+    footer {
+      position: relative; z-index: 50; padding: 6px 16px; padding-bottom: max(10px, env(safe-area-inset-bottom));
+      background: rgba(14, 18, 26, 0.92); backdrop-filter: blur(30px); border-top: 1px solid var(--card-border);
+    }
+    .tab-bar-telegram { display: flex; align-items: center; justify-content: space-around; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--card-border); border-radius: 9999px; padding: 6px 10px; }
+    .tab-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px; border: none; background: transparent; color: var(--muted); font-size: 12px; font-weight: 800; cursor: pointer; border-radius: 9999px; transition: all 0.2s; }
+    .tab-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; }
+    .tab-btn.active { background: #ffffff; color: #000000; }
+
+    .chat-screen-backdrop { display: none; position: fixed; inset: 0; z-index: 150; background: var(--bg); flex-direction: column; }
+    .chat-screen-backdrop.active { display: flex; animation: viewIn 0.25s var(--spring); }
+    .chat-screen-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; padding-top: max(12px, env(safe-area-inset-top)); background: rgba(16, 20, 28, 0.92); border-bottom: 1px solid var(--card-border); }
+    .chat-messages-scroll { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+
+    .msg-wrap { display: flex; flex-direction: column; width: 100%; position: relative; }
+    .msg-bubble {
+      max-width: 76%; padding: 8px 12px; border-radius: 18px; font-size: 14px; line-height: 1.4; word-break: break-word;
+      display: flex; flex-direction: column; gap: 4px; position: relative; cursor: pointer; user-select: text;
+    }
+    .msg-bubble.outgoing { background: var(--bubble-out) !important; color: #fff !important; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .msg-bubble.incoming { background: var(--bubble-in) !important; color: #fff !important; border: 1px solid var(--card-border); align-self: flex-start; border-bottom-left-radius: 4px; }
+
+    .chat-screen-input-bar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; padding-bottom: max(10px, env(safe-area-inset-bottom)); background: rgba(16, 20, 28, 0.95); border-top: 1px solid var(--card-border); }
+    .chat-text-input { flex: 1; background: rgba(255, 255, 255, 0.07); border: 1px solid var(--card-border); border-radius: 9999px; padding: 10px 16px; color: #fff; font-size: 14px; outline: none; user-select: text; }
+
+    .modal-overlay { display: none; position: fixed; inset: 0; z-index: 200; background: rgba(0, 0, 0, 0.82); backdrop-filter: blur(25px); align-items: center; justify-content: center; padding: 16px; }
+    .modal-sheet { background: rgba(20, 25, 36, 0.96); border: 1px solid var(--card-border); border-radius: 28px; width: 100%; max-width: 400px; max-height: 85dvh; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; animation: viewIn 0.25s var(--spring); }
+
+    /* ВИНИЛ В ПРОФИЛЕ */
+    .vinyl-box { background: rgba(10, 14, 22, 0.9); border: 1px solid var(--card-border); border-radius: 20px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .vinyl-row { display: flex; align-items: center; gap: 14px; position: relative; }
+    .vinyl-sleeve { width: 56px; height: 56px; border-radius: 12px; background-size: cover; background-position: center; z-index: 2; flex-shrink: 0; }
+    .vinyl-disc {
+      width: 52px; height: 52px; border-radius: 50%;
+      background: radial-gradient(circle, #2d2d38 12%, #111115 13%, #1e1e24 28%, #0d0d10 45%, #22222a 62%, #0a0a0d 100%);
+      position: absolute; left: 22px; z-index: 1; display: flex; align-items: center; justify-content: center; transition: left 0.3s;
+    }
+    .vinyl-disc::after { content: ''; width: 16px; height: 16px; border-radius: 50%; background: var(--accent); }
+    .vinyl-box.playing .vinyl-disc { left: 44px; animation: spinVinyl 3.5s linear infinite; }
+    @keyframes spinVinyl { 100% { transform: rotate(360deg); } }
+
+    #full-loader-screen {
+      display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.88);
+      backdrop-filter: blur(25px); z-index: 999999; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+    }
+    .loader-ring { width: 48px; height: 48px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--accent); border-radius: 50%; animation: spinL 0.8s linear infinite; }
+    @keyframes spinL { to { transform: rotate(360deg); } }
+
+    #toast-wrap { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 500; pointer-events: none; display: flex; flex-direction: column; gap: 6px; }
+    .toast-msg { background: rgba(20, 24, 32, 0.95); border: 1px solid var(--card-border); border-radius: 9999px; padding: 10px 18px; font-size: 13px; font-weight: 700; color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,0.6); }
+  </style>
+</head>
+<body class="theme-oled" onclick="_unlockAudio()">
+
+  <!-- ПОЛНОЭКРАННЫЙ ЛОАДЕР -->
+  <div id="full-loader-screen">
+    <div class="loader-ring"></div>
+    <span style="font-size:14px; font-weight:800; letter-spacing:0.02em;">Синхронизация профиля Nook...</span>
+  </div>
+
+  <div id="toast-wrap"></div>
+
+  <!-- ШАПКА -->
+  <header>
+    <div class="header-top">
+      <span class="brand-title">NOOK</span>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <button id="btn-admin-panel" class="btn-icon" style="display:none; color:var(--gold);" onclick="_showModal('modal-admin')">
+          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </button>
+        <div class="user-pill" onclick="_openProfileHub()">
+          <div id="pill-avatar-wrap" class="avatar-wrapper frame-none" style="width:28px; height:28px;">
+            <img id="pill-avatar-img" class="avatar-inner-img" src="">
+            <span id="pill-avatar-fallback" style="font-weight:800; font-size:12px;">N</span>
+          </div>
+          <span id="pill-name" style="font-size:13px; font-weight:700;">Вход</span>
+        </div>
+      </div>
+    </div>
+    <div class="top-search-bar">
+      <svg style="width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:2.2;" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="top-search-input" placeholder="Поиск в Nook или треков..." oninput="_onSearchInput(event)">
+    </div>
+  </header>
+
+  <!-- ЭКРАНЫ -->
+  <main>
+    <!-- 1. ЧАТЫ -->
+    <section id="tab-chats" class="tab-view active">
+      <div class="chat-subtabs-row">
+        <button id="subtab-btn-direct" class="chat-subtab-btn active" onclick="_switchChatSubtab('direct')">Личные чаты</button>
+        <button id="subtab-btn-groups" class="chat-subtab-btn" onclick="_switchChatSubtab('groups')">Группы</button>
+      </div>
+      <div id="chats-direct-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+      <div id="chats-groups-list" style="display:none; flex-direction:column; gap:8px;">
+        <div class="chat-item" onclick="_openCreateGroupModal()" style="border-style:dashed; justify-content:center;">
+          <span style="font-weight:800; font-size:14px; color:var(--accent);">+ Создать новую группу</span>
+        </div>
+        <div id="groups-container-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+    </section>
+
+    <!-- 2. ПОСТЫ -->
+    <section id="tab-posts" class="tab-view">
+      <div class="post-composer">
+        <textarea id="composer-text" class="post-textarea" placeholder="Что нового?"></textarea>
+        <div style="display:flex; align-items:center; justify-content:space-between; border-top:1px solid var(--card-border); padding-top:10px;">
+          <label style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; cursor:pointer;">
+            <svg style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+            <span>Медиа</span>
+            <input type="file" id="composer-file" accept="image/*,video/*" style="display:none;" onchange="_onSelectPostMedia(event)">
+          </label>
+          <button class="btn-pill" onclick="_publishPost()">Опубликовать</button>
+        </div>
+      </div>
+      <div id="posts-stream" style="display:flex; flex-direction:column; gap:12px;"></div>
+    </section>
+
+    <!-- 3. МУЗЫКАЛЬНЫЙ РАЗДЕЛ (РЕАЛЬНЫЕ ХИТЫ) -->
+    <section id="tab-music" class="tab-view">
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <h3 style="font-size:18px; font-weight:900;">Каталог хитов</h3>
+        <span style="font-size:12px; color:var(--muted);" id="music-count-badge">Все треки</span>
+      </div>
+      <div id="music-tracks-stream" style="display:flex; flex-direction:column; gap:8px;"></div>
+    </section>
+  </main>
+
+  <!-- МИНИ-ПЛЕЕР НАД МЕНЮ -->
+  <div id="mini-audio-bar" onclick="_openFullPlayer()">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <img id="mini-cover" src="" style="width:38px; height:38px; border-radius:8px; object-fit:cover;">
+      <div>
+        <div id="mini-title" style="font-size:13px; font-weight:800; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Track</div>
+        <div id="mini-author" style="font-size:11px; color:var(--muted);">Artist</div>
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:8px;" onclick="event.stopPropagation();">
+      <div class="mini-waves-wrap">
+        <div class="mini-wave"></div><div class="mini-wave"></div><div class="mini-wave"></div>
+      </div>
+      <button class="btn-icon" style="width:34px; height:34px;" onclick="_togglePlayback()">
+        <svg id="mini-play-icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      </button>
+      <button class="btn-icon" style="width:28px; height:28px; background:transparent; border:none; color:var(--muted);" onclick="_stopAndCloseMiniPlayer()">✕</button>
+    </div>
+  </div>
+
+  <!-- НИЖНИЙ НАВИГАЦИОННЫЙ БАР -->
+  <footer>
+    <div class="tab-bar-telegram">
+      <button id="btn-tab-chats" class="tab-btn active" onclick="_switchTab('chats')">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Чаты</span>
+      </button>
+      <button id="btn-tab-posts" class="tab-btn" onclick="_switchTab('posts')">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+        <span>Посты</span>
+      </button>
+      <button id="btn-tab-music" class="tab-btn" onclick="_switchTab('music')">
+        <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        <span>Музыка</span>
+      </button>
+    </div>
+  </footer>
+
+  <!-- ПОЛНОЭКРАННЫЙ ПЛЕЕР -->
+  <div id="modal-full-player">
+    <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+      <button class="btn-icon" style="width:40px; height:40px;" onclick="_closeFullPlayer()">
+        <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <span style="font-size:13px; font-weight:800; color:var(--muted);">СЕЙЧАС ИГРАЕТ</span>
+      <button class="btn-icon" style="width:40px; height:40px;" onclick="_openSharePickerModal()">
+        <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+
+    <div style="display:flex; flex-direction:column; align-items:center; gap:20px; width:100%;">
+      <img id="player-full-cover" src="" style="width:230px; height:230px; border-radius:24px; object-fit:cover; box-shadow:0 15px 40px rgba(0,0,0,0.8);">
+      <div style="text-align:center;">
+        <h2 id="player-full-title" style="font-size:20px; font-weight:900;">Track Name</h2>
+        <p id="player-full-artist" style="color:var(--muted); font-size:14px; margin-top:4px;">Artist Name</p>
+      </div>
+
+      <button class="btn-pill" style="background:rgba(255,255,255,0.08); color:#fff; border:1px solid var(--card-border); font-size:12px;" onclick="_setTrackAsProfileMusic()">
+        ⭐ Поставить в мой профиль
+      </button>
+
+      <div style="width:100%; max-width:300px; display:flex; flex-direction:column; gap:8px;">
+        <input type="range" id="player-seek-slider" min="0" max="100" value="0" style="width:100%; accent-color:var(--accent); cursor:pointer;" oninput="_onSeekSliderChange(this.value)">
+        <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--muted);">
+          <span id="player-curr-time">0:00</span>
+          <span id="player-total-time">2:30</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:28px;">
+      <button class="btn-icon" style="width:48px; height:48px;" onclick="_prevTrack()"><svg viewBox="0 0 24 24"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg></button>
+      <button class="btn-icon" style="width:64px; height:64px; background:#fff; color:#000;" onclick="_togglePlayback()">
+        <svg id="player-btn-play-icon" viewBox="0 0 24 24" style="stroke:#000; fill:#000;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      </button>
+      <button class="btn-icon" style="width:48px; height:48px;" onclick="_nextTrack()"><svg viewBox="0 0 24 24"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg></button>
+    </div>
+
+    <button class="btn-pill" style="background:transparent; border:1px solid var(--card-border); color:var(--muted); width:100%; max-width:280px;" onclick="_closeFullPlayer()">
+      Закрыть окно
+    </button>
+  </div>
+
+  <!-- ДИАЛОГ ВЫБОРА ЧАТА -->
+  <div id="modal-share-picker" class="modal-overlay">
+    <div class="modal-sheet">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:16px; font-weight:800;">Отправить трек в чат</span>
+        <button class="btn-icon" onclick="_hideModal('modal-share-picker')">✕</button>
+      </div>
+      <p style="font-size:12px; color:var(--muted);">Выберите получателя:</p>
+      <div id="share-users-list" style="display:flex; flex-direction:column; gap:8px; max-height:260px; overflow-y:auto;"></div>
+    </div>
+  </div>
+
+  <!-- КАРТОЧКА ПРОСМОТРА ПРОФИЛЯ -->
+  <div id="modal-view-user" class="modal-overlay">
+    <div class="modal-sheet" style="padding:0; overflow:hidden;">
+      <div id="v-user-banner" style="height:120px; background-size:cover; background-position:center; background-image:url('https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80');"></div>
+      <div style="padding:18px; margin-top:-44px; display:flex; flex-direction:column; align-items:center; gap:10px;">
+        <div id="v-user-frame-wrap" class="avatar-wrapper frame-none" style="width:84px; height:84px;">
+          <img id="v-user-avatar" class="avatar-inner-img" src="">
+        </div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <h3 id="v-user-name" style="font-size:18px; font-weight:900;">@user</h3>
+          <span id="v-user-badge-verified" style="display:none; color:var(--accent);">✓</span>
+          <span id="v-user-badge-admin" style="display:none; color:var(--gold); font-size:11px; font-weight:800;">ADMIN</span>
+        </div>
+        <p id="v-user-bio" style="font-size:13px; color:var(--muted); text-align:center;">Статус</p>
+
+        <!-- ВИНИЛОВЫЙ ПЛЕЕР В ПРОФИЛЕ -->
+        <div id="v-vinyl-block" class="vinyl-box" style="width:100%; display:flex;">
+          <div class="vinyl-row">
+            <div id="v-vinyl-cover" class="vinyl-sleeve"></div>
+            <div class="vinyl-disc"></div>
+            <div style="flex:1; margin-left:34px; display:flex; flex-direction:column;">
+              <span id="v-vinyl-title" style="font-size:13px; font-weight:800;">Track Name</span>
+              <span id="v-vinyl-genre" style="font-size:11px; color:var(--muted);">Artist</span>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between; border-top:1px solid var(--card-border); padding-top:8px;">
+            <button class="btn-icon" style="background:#fff; color:#000;" onclick="_toggleProfileVinylAudio()">
+              <svg id="v-vinyl-btn-icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </button>
+            <div class="mini-waves-wrap">
+              <div class="mini-wave"></div><div class="mini-wave"></div><div class="mini-wave"></div>
+            </div>
+          </div>
+        </div>
+
+        <button id="btn-chat-from-profile" class="btn-pill" style="width:100%; padding:12px;" onclick="_startChatFromProfile()">Написать сообщение</button>
+        <button class="btn-pill" style="width:100%; background:transparent; border:1px solid var(--card-border); color:#fff;" onclick="_hideModal('modal-view-user')">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- НАСТРОЙКИ СВОЕГО ПРОФИЛЯ -->
+  <div id="modal-edit-profile" class="modal-overlay">
+    <div class="modal-sheet">
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <span style="font-size:17px; font-weight:900;">Настройки аккаунта</span>
+        <button class="btn-icon" onclick="_hideModal('modal-edit-profile')">✕</button>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:14px;">
+        <div id="edit-frame-preview-wrap" class="avatar-wrapper frame-none" style="width:64px; height:64px;">
+          <img id="edit-avatar-preview" class="avatar-inner-img" src="">
+        </div>
+        <label class="btn-pill" style="padding:6px 14px; font-size:12px;">
+          <span>Сменить фото</span>
+          <input type="file" id="edit-avatar-file" accept="image/*" style="display:none;" onchange="_onAvatarChange(event)">
+        </label>
+      </div>
+
+      <div>
+        <label style="font-size:11px; font-weight:800; color:var(--muted);">РАМКА АВАТАРКИ</label>
+        <select id="edit-avatar-frame" class="chat-text-input" style="width:100%; border-radius:14px; margin-top:4px;" onchange="_updateFramePreview(this.value)">
+          <option value="frame-none">Без рамки</option>
+          <option value="frame-neon">Неоновый пульс</option>
+          <option value="frame-cyber">Киберпанк</option>
+          <option value="frame-fire">Адское пламя</option>
+          <option value="frame-ice">Лед</option>
+          <option value="frame-gold">Золото</option>
+          <option id="opt-admin-frame" value="frame-matrix-hq" style="display:none; color:#10b981;">👑 HQ Тёмная Матрица</option>
+        </select>
+      </div>
+
+      <div>
+        <label style="font-size:11px; font-weight:800; color:var(--muted);">О СЕБЕ (BIO)</label>
+        <input type="text" id="edit-bio" class="chat-text-input" style="width:100%; border-radius:14px; margin-top:4px;" placeholder="Статус...">
+      </div>
+
+      <div>
+        <label style="font-size:11px; font-weight:800; color:var(--muted);">МУЗЫКА ДЛЯ ПРОФИЛЯ</label>
+        <select id="edit-vinyl-track" class="chat-text-input" style="width:100%; border-radius:14px; margin-top:4px;"></select>
+      </div>
+
+      <div>
+        <label style="font-size:11px; font-weight:800; color:var(--muted);">ТЕМА ОФОРМЛЕНИЯ</label>
+        <select id="edit-theme-select" class="chat-text-input" style="width:100%; border-radius:14px; margin-top:4px;" onchange="_applyTheme(this.value)">
+          <option value="theme-oled">OLED Black</option>
+          <option value="theme-cyber">Cyberpunk</option>
+          <option value="theme-space">Space Blue</option>
+          <option id="opt-admin-theme" value="theme-gold-hq" style="display:none;">👑 Gold HQ (VIP)</option>
+        </select>
+      </div>
+
+      <button class="btn-pill" style="background:transparent; border:1px solid var(--accent); color:var(--accent); padding:12px;" onclick="_previewMyProfile()">👁️ Предпросмотр своего профиля</button>
+      <button class="btn-pill" style="padding:12px;" onclick="_saveProfileSettings()">Сохранить все настройки</button>
+      <button class="btn-pill" style="background:transparent; border:1px solid var(--card-border); color:var(--danger); padding:10px;" onclick="_logout()">Выйти</button>
+    </div>
+  </div>
+
+  <!-- ПОЛНОЭКРАННЫЙ ЧАТ -->
+  <div id="screen-chat" class="chat-screen-backdrop">
+    <div class="chat-screen-head">
+      <button class="btn-icon" onclick="_closeChatScreen()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <div style="display:flex; flex-direction:column; align-items:center; cursor:pointer;" onclick="_openPeerProfileFromChat()">
+        <span id="chat-peer-title" style="font-size:16px; font-weight:800;">@user</span>
+        <span style="font-size:11px; color:var(--success);">профиль ➔</span>
+      </div>
+      <button class="btn-icon" onclick="_toast('Вызов защищен...')"><svg style="stroke:var(--success);" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></button>
+    </div>
+    <div id="chat-messages-box" class="chat-messages-scroll"></div>
+    <div class="chat-screen-input-bar">
+      <input type="text" id="chat-input" class="chat-text-input" placeholder="Сообщение...">
+      <button class="btn-icon" style="background:var(--accent); color:#fff;" onclick="_sendChatMessage()"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+    </div>
+  </div>
+
+  <!-- ВХОД -->
+  <div id="modal-auth" class="modal-overlay">
+    <div class="modal-sheet">
+      <h3 style="font-size:18px; font-weight:900; text-align:center;">Вход в Nook</h3>
+      <input type="text" id="auth-u" class="chat-text-input" style="border-radius:14px;" placeholder="Юзернейм">
+      <input type="password" id="auth-p" class="chat-text-input" style="border-radius:14px;" placeholder="Пароль">
+      <button class="btn-pill" style="padding:12px;" onclick="_handleAuth('login')">Войти</button>
+      <button class="btn-pill" style="background:transparent; border:1px solid var(--card-border); color:#fff; padding:10px;" onclick="_handleAuth('register')">Создать аккаунт</button>
+    </div>
+  </div>
+
+  <script>
+    const _dbUrl = "https://tsoqstfbvjpusbhljtff.supabase.co";
+    const _dbKey = "sb_publishable_eu27ROp3T7R3gEOeRezaFQ_RlmVnDSM";
+    const _db = supabase.createClient(_dbUrl, _dbKey);
+
+    /* РЕАЛЬНЫЙ КАТАЛОГ С ИНДИВИДУАЛЬНЫМИ МЕЛОДИЯМИ И ОБЛОЖКАМИ */
+    const NOOK_TRACKS = {
+      // ГАЗАН (GAZAN)
+      gazan_che_za_lev: {
+        title: "Чё за лев этот тигр",
+        artist: "Газан (Gazan)",
+        genre: "Хит",
+        cover: "https://images.unsplash.com/photo-1546182990-dffeafbe841d?w=300&q=80",
+        tempo: 128,
+        pattern: [164.81, 196.00, 220.00, 246.94, 220.00, 196.00],
+        type: 'sawtooth'
+      },
+      gazan_barkhatnye_tyagi: {
+        title: "Бархатные тяги",
+        artist: "Газан (Gazan)",
+        genre: "Кавказ / Хит",
+        cover: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&q=80",
+        tempo: 132,
+        pattern: [130.81, 146.83, 164.81, 174.61, 196.00, 174.61],
+        type: 'square'
+      },
+      gazan_korona: {
+        title: "Корона",
+        artist: "Газан (Gazan)",
+        genre: "Поп-хит",
+        cover: "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=300&q=80",
+        tempo: 120,
+        pattern: [110.00, 130.81, 146.83, 164.81, 146.83],
+        type: 'triangle'
+      },
+      gazan_pantera: {
+        title: "Пантера",
+        artist: "Газан (Gazan)",
+        genre: "Хит",
+        cover: "https://images.unsplash.com/photo-1534188753412-3e26d0d618d6?w=300&q=80",
+        tempo: 125,
+        pattern: [98.00, 123.47, 146.83, 164.81, 123.47],
+        type: 'sawtooth'
+      },
+      gazan_abu_bandit: {
+        title: "Абу Бандит",
+        artist: "Газан (Gazan)",
+        genre: "Клубный хит",
+        cover: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=300&q=80",
+        tempo: 135,
+        pattern: [82.41, 110.00, 123.47, 130.81, 110.00],
+        type: 'square'
+      },
+
+      // SIX SEVEN
+      six_seven_drifting: {
+        title: "Six Seven Drifting",
+        artist: "Six Seven",
+        genre: "Drift Phonk",
+        cover: "https://images.unsplash.com/photo-1511447333015-45b65e60f6d5?w=300&q=80",
+        tempo: 145,
+        pattern: [65.41, 130.81, 98.00, 116.54, 87.31],
+        type: 'sawtooth'
+      },
+      six_seven_shadows: {
+        title: "Shadows in the Night",
+        artist: "Six Seven",
+        genre: "Atmospheric Phonk",
+        cover: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=300&q=80",
+        tempo: 110,
+        pattern: [55.00, 82.41, 110.00, 73.42, 65.41],
+        type: 'sine'
+      },
+      six_seven_tokyo: {
+        title: "Tokyo Drift 67",
+        artist: "Six Seven",
+        genre: "Hardwave",
+        cover: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=300&q=80",
+        tempo: 140,
+        pattern: [87.31, 116.54, 130.81, 174.61, 116.54],
+        type: 'square'
+      },
+      six_seven_venom: {
+        title: "Venom Bassline",
+        artist: "Six Seven",
+        genre: "Raw Phonk",
+        cover: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=300&q=80",
+        tempo: 150,
+        pattern: [73.42, 146.83, 110.00, 130.81, 98.00],
+        type: 'sawtooth'
+      },
+
+      // NOOK ORIGINALS
+      cyber_drift_2026: {
+        title: "Cyber Drift 2026",
+        artist: "Nook Originals",
+        genre: "Synth Phonk",
+        cover: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80",
+        tempo: 125,
+        pattern: [65.41, 130.81, 98.00, 116.54],
+        type: 'sawtooth'
+      },
+      neon_horizon_hq: {
+        title: "Neon Horizon",
+        artist: "Future Club",
+        genre: "Future Bass",
+        cover: "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=300&q=80",
+        tempo: 140,
+        pattern: [174.61, 220.00, 261.63, 329.63],
+        type: 'triangle'
+      },
+      hq_creator_vip: {
+        title: "HQ Creator VIP",
+        artist: "Nook Imperial",
+        genre: "VIP Anthem",
+        cover: "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=300&q=80",
+        tempo: 130,
+        pattern: [87.31, 174.61, 130.81, 164.81],
+        type: 'sawtooth'
+      },
+      retro_drive_80: {
+        title: "Retro Drive 80s",
+        artist: "Kavinsky Style",
+        genre: "Synthwave",
+        cover: "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=300&q=80",
+        tempo: 118,
+        pattern: [110.00, 130.81, 164.81, 196.00],
+        type: 'sawtooth'
+      },
+      solar_flare_trance: {
+        title: "Solar Flare",
+        artist: "Trance Energy",
+        genre: "Trance",
+        cover: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=300&q=80",
+        tempo: 138,
+        pattern: [130.81, 155.56, 174.61, 196.00],
+        type: 'triangle'
+      },
+      deep_abyss_house: {
+        title: "Deep Abyss",
+        artist: "Submarine Sound",
+        genre: "Deep House",
+        cover: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=300&q=80",
+        tempo: 124,
+        pattern: [65.41, 77.78, 87.31, 98.00],
+        type: 'sine'
+      }
+    };
+
+    /* АУДИОДВИЖОК С ИНДИВИДУАЛЬНЫМИ ПАТТЕРНАМИ */
+    let _audioCtx = null;
+    let _audioTimer = null;
+    let _audioSec = 0;
+    let _isPlaying = false;
+    let _currentTrackKey = "gazan_che_za_lev";
+
+    let _currentUser = null, _activeChatPeerId = null, _inspectedUser = null;
+    let _profilesCache = {};
+
+    function _unlockAudio() {
+      if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (_audioCtx.state === 'suspended') _audioCtx.resume();
+    }
+
+    function _playToneCustom(freq, type = 'sawtooth') {
+      if (!_audioCtx) return;
+      const t = _audioCtx.currentTime;
+      const osc = _audioCtx.createOscillator();
+      const gain = _audioCtx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, t);
+      gain.gain.setValueAtTime(0.2, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.38);
+      osc.connect(gain);
+      gain.connect(_audioCtx.destination);
+      osc.start(t);
+      osc.stop(t + 0.38);
+    }
+
+    function _toast(t) {
+      const w = document.getElementById('toast-wrap');
+      const el = document.createElement('div');
+      el.className = 'toast-msg'; el.innerText = t;
+      w.appendChild(el);
+      setTimeout(() => el.remove(), 2600);
+    }
+
+    function _showModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function _hideModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    function _switchTab(tab) {
+      document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + tab).classList.add('active');
+      document.getElementById('btn-tab-' + tab).classList.add('active');
+
+      if (tab === 'chats') _loadChatsList();
+      if (tab === 'posts') _loadFeedStream();
+      if (tab === 'music') _renderMusicTracksList();
+    }
+
+    function _switchChatSubtab(t) {
+      document.getElementById('subtab-btn-direct').classList.toggle('active', t === 'direct');
+      document.getElementById('subtab-btn-groups').classList.toggle('active', t === 'groups');
+      document.getElementById('chats-direct-list').style.display = (t === 'direct') ? 'flex' : 'none';
+      document.getElementById('chats-groups-list').style.display = (t === 'groups') ? 'flex' : 'none';
+    }
+
+    /* РЕНДЕР КАТАЛОГА МУЗЫКИ */
+    function _renderMusicTracksList(filter = '') {
+      const cont = document.getElementById('music-tracks-stream');
+      cont.innerHTML = '';
+      const keys = Object.keys(NOOK_TRACKS).filter(k => {
+        const tr = NOOK_TRACKS[k];
+        return tr.title.toLowerCase().includes(filter) || tr.artist.toLowerCase().includes(filter);
+      });
+
+      document.getElementById('music-count-badge').innerText = `${keys.length} треков`;
+
+      keys.forEach(k => {
+        const tr = NOOK_TRACKS[k];
+        const isCur = (_currentTrackKey === k && _isPlaying);
+        const item = document.createElement('div');
+        item.className = `music-track-item ${isCur ? 'playing' : ''}`;
+        item.onclick = () => _openAndPlayTrack(k);
+        item.innerHTML = `
+          <div style="display:flex; align-items:center; gap:12px;">
+            <img class="track-thumb" src="${tr.cover}">
+            <div>
+              <div style="font-size:14px; font-weight:800; color:#fff;">${tr.title}</div>
+              <div style="font-size:12px; color:var(--muted);">${tr.artist} • ${tr.genre}</div>
+            </div>
+          </div>
+          <button class="btn-icon" onclick="event.stopPropagation(); _openSharePickerModal('${k}')" title="Отправить">
+            <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        `;
+        cont.appendChild(item);
+      });
+    }
+
+    function _openAndPlayTrack(k) {
+      _currentTrackKey = k;
+      _startPlayback();
+      _openFullPlayer();
+    }
+
+    function _startPlayback() {
+      _unlockAudio();
+      const tr = NOOK_TRACKS[_currentTrackKey];
+      if (!tr) return;
+
+      if (_audioTimer) clearInterval(_audioTimer);
+      _isPlaying = true;
+
+      const pattern = tr.pattern || [120, 150, 180, 140];
+      const tempoInterval = Math.round((60 / (tr.tempo || 120)) * 1000);
+      let step = 0;
+
+      _playToneCustom(pattern[0], tr.type || 'sawtooth');
+      _audioTimer = setInterval(() => {
+        step = (step + 1) % pattern.length;
+        _playToneCustom(pattern[step], tr.type || 'sawtooth');
+        _audioSec = (_audioSec + 1) % 150;
+        _updateProgressUI();
+      }, tempoInterval);
+
+      _updateAudioUI(true);
+    }
+
+    function _togglePlayback() {
+      if (_isPlaying) {
+        if (_audioTimer) clearInterval(_audioTimer);
+        _isPlaying = false;
+        _updateAudioUI(false);
+      } else {
+        _startPlayback();
+      }
+    }
+
+    function _stopAndCloseMiniPlayer() {
+      if (_audioTimer) clearInterval(_audioTimer);
+      _isPlaying = false;
+      document.getElementById('mini-audio-bar').style.display = 'none';
+      _updateAudioUI(false);
+    }
+
+    function _updateProgressUI() {
+      const pct = (_audioSec / 150) * 100;
+      document.getElementById('player-seek-slider').value = pct;
+      const m = Math.floor(_audioSec / 60);
+      const s = (_audioSec % 60).toString().padStart(2, '0');
+      document.getElementById('player-curr-time').innerText = `${m}:${s}`;
+    }
+
+    function _onSeekSliderChange(val) {
+      _audioSec = Math.floor((val / 100) * 150);
+      _updateProgressUI();
+    }
+
+    function _updateAudioUI(playing) {
+      const tr = NOOK_TRACKS[_currentTrackKey];
+      if (!tr) return;
+
+      const mini = document.getElementById('mini-audio-bar');
+      mini.style.display = 'flex';
+      mini.classList.toggle('playing', playing);
+
+      document.getElementById('mini-title').innerText = tr.title;
+      document.getElementById('mini-author').innerText = tr.artist;
+      document.getElementById('mini-cover').src = tr.cover;
+
+      const pIcon = playing ? '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>' : '<polygon points="5 3 19 12 5 21 5 3"/>';
+      document.getElementById('mini-play-icon').innerHTML = pIcon;
+
+      document.getElementById('player-full-title').innerText = tr.title;
+      document.getElementById('player-full-artist').innerText = tr.artist;
+      document.getElementById('player-full-cover').src = tr.cover;
+      document.getElementById('player-btn-play-icon').innerHTML = pIcon;
+
+      const vBox = document.getElementById('v-vinyl-block');
+      if (vBox) {
+        vBox.classList.toggle('playing', playing);
+        const vBtn = document.getElementById('v-vinyl-btn-icon');
+        if (vBtn) vBtn.innerHTML = pIcon;
+      }
+
+      if (document.getElementById('tab-music').classList.contains('active')) {
+        _renderMusicTracksList();
+      }
+    }
+
+    function _openFullPlayer() { document.getElementById('modal-full-player').style.display = 'flex'; }
+    function _closeFullPlayer() { document.getElementById('modal-full-player').style.display = 'none'; }
+
+    function _nextTrack() {
+      const keys = Object.keys(NOOK_TRACKS);
+      const idx = keys.indexOf(_currentTrackKey);
+      _currentTrackKey = keys[(idx + 1) % keys.length];
+      _audioSec = 0;
+      _startPlayback();
+    }
+
+    function _prevTrack() {
+      const keys = Object.keys(NOOK_TRACKS);
+      const idx = keys.indexOf(_currentTrackKey);
+      _currentTrackKey = keys[(idx - 1 + keys.length) % keys.length];
+      _audioSec = 0;
+      _startPlayback();
+    }
+
+    /* ПОДЕЛИТЬСЯ ТРЕКОМ В ДИАЛОГ */
+    let _trackToShare = null;
+    async function _openSharePickerModal(key) {
+      _trackToShare = key || _currentTrackKey;
+      const box = document.getElementById('share-users-list');
+      box.innerHTML = '<p style="font-size:12px; color:var(--muted);">Загрузка контактов...</p>';
+      _showModal('modal-share-picker');
+
+      const { data: users } = await _db.from('profiles').select('id, username, avatar_url').neq('id', _currentUser.id).limit(20);
+      box.innerHTML = '';
+      if (!users || users.length === 0) {
+        box.innerHTML = '<p style="font-size:12px; color:var(--muted);">Контактов пока нет</p>';
+        return;
+      }
+
+      users.forEach(u => {
+        const item = document.createElement('div');
+        item.className = 'chat-item';
+        item.style.padding = '8px 12px';
+        item.onclick = () => _executeSendTrackToUser(u.id);
+        item.innerHTML = `
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div class="avatar-wrapper" style="width:30px; height:30px;"><img class="avatar-inner-img" src="${u.avatar_url || ''}"></div>
+            <span style="font-weight:800; font-size:13px;">@${u.username}</span>
+          </div>
+          <span style="color:var(--accent); font-size:12px; font-weight:800;">Отправить</span>
+        `;
+        box.appendChild(item);
+      });
+    }
+
+    async function _executeSendTrackToUser(receiverId) {
+      const tr = NOOK_TRACKS[_trackToShare];
+      if (!tr) return;
+
+      const payload = JSON.stringify({
+        media: tr.cover,
+        caption: `🎵 Музыка: ${tr.title} — ${tr.artist}`
+      });
+
+      await _db.from('direct_messages').insert({
+        sender_id: _currentUser.id, receiver_id: receiverId, encrypted_content: btoa(encodeURIComponent(payload)), msg_type: 'media'
+      });
+
+      _toast(`Трек отправлен!`);
+      _hideModal('modal-share-picker');
+    }
+
+    async function _setTrackAsProfileMusic() {
+      if (!_currentUser) return;
+      await _db.from('profiles').update({ vinyl_track: _currentTrackKey }).eq('id', _currentUser.id);
+      _currentUser.vinyl_track = _currentTrackKey;
+      _toast(`Установлено в профиль: ${NOOK_TRACKS[_currentTrackKey].title}`);
+    }
+
+    /* АВТОРИЗАЦИЯ И СЕССИЯ */
+    async function _hashPass(s) {
+      const buf = new TextEncoder().encode(s + "_nook_salt_secure_2026");
+      const h = await crypto.subtle.digest('SHA-256', buf);
+      return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function _handleAuth(action) {
+      const u = document.getElementById('auth-u').value.trim().toLowerCase();
+      const p = document.getElementById('auth-p').value.trim();
+      if (!u || p.length < 4) return _toast('От 4 символов');
+
+      const passHash = await _hashPass(p);
+
+      if (action === 'register') {
+        const isAdm = (u === 'nookoriginals');
+        const { data: nu, error } = await _db.from('profiles').insert({
+          username: u, password_hash: passHash, is_admin: isAdm, is_verified: isAdm,
+          app_theme: 'theme-oled', music_type: 'vinyl', vinyl_track: 'gazan_che_za_lev', avatar_frame: 'frame-none'
+        }).select().single();
+
+        if (error) return _toast('Ошибка: ' + error.message);
+        localStorage.setItem('nook_pro_session', JSON.stringify({ uid: nu.id }));
+        _hideModal('modal-auth');
+        _syncSession();
+      } else {
+        const { data: user } = await _db.from('profiles').select('*').eq('username', u).maybeSingle();
+        if (!user || user.password_hash !== passHash) return _toast('Неверные данные');
+        localStorage.setItem('nook_pro_session', JSON.stringify({ uid: user.id }));
+        _hideModal('modal-auth');
+        _syncSession();
+      }
+    }
+
+    async function _syncSession() {
+      const saved = localStorage.getItem('nook_pro_session');
+      if (!saved) return _showModal('modal-auth');
+
+      const sess = JSON.parse(saved);
+      const { data: p } = await _db.from('profiles').select('*').eq('id', sess.uid).maybeSingle();
+      if (!p) return _showModal('modal-auth');
+
+      _currentUser = p;
+      _profilesCache[p.id] = p;
+
+      _applyTheme(p.app_theme || 'theme-oled');
+      document.getElementById('pill-name').innerText = `@${p.username}`;
+
+      const pillWrap = document.getElementById('pill-avatar-wrap');
+      pillWrap.className = `avatar-wrapper ${p.avatar_frame || 'frame-none'}`;
+      if (p.avatar_url) {
+        document.getElementById('pill-avatar-img').src = p.avatar_url;
+        document.getElementById('pill-avatar-img').style.display = 'block';
+        document.getElementById('pill-avatar-fallback').style.display = 'none';
+      } else {
+        document.getElementById('pill-avatar-img').style.display = 'none';
+        document.getElementById('pill-avatar-fallback').style.display = 'block';
+        document.getElementById('pill-avatar-fallback').innerText = p.username.charAt(0).toUpperCase();
+      }
+
+      if (p.is_admin) {
+        document.getElementById('btn-admin-panel').style.display = 'flex';
+        document.getElementById('opt-admin-frame').style.display = 'block';
+        document.getElementById('opt-admin-theme').style.display = 'block';
+      }
+
+      _populateTrackSelectOptions();
+      _renderMusicTracksList();
+      _loadChatsList();
+    }
+
+    function _populateTrackSelectOptions() {
+      const sel = document.getElementById('edit-vinyl-track');
+      sel.innerHTML = '';
+      Object.keys(NOOK_TRACKS).forEach(k => {
+        const opt = document.createElement('option');
+        opt.value = k;
+        opt.innerText = `${NOOK_TRACKS[k].title} — ${NOOK_TRACKS[k].artist}`;
+        sel.appendChild(opt);
+      });
+    }
+
+    function _applyTheme(t) { document.body.className = t; }
+
+    /* СОХРАНЕНИЕ ПРОФИЛЯ */
+    async function _saveProfileSettings() {
+      const loader = document.getElementById('full-loader-screen');
+      loader.style.display = 'flex';
+
+      const bio = document.getElementById('edit-bio').value.trim();
+      const frame = document.getElementById('edit-avatar-frame').value;
+      const theme = document.getElementById('edit-theme-select').value;
+      const vTrack = document.getElementById('edit-vinyl-track').value;
+
+      const up = {
+        bio,
+        avatar_frame: frame,
+        app_theme: theme,
+        vinyl_track: vTrack
+      };
+      if (_tempAvatar) up.avatar_url = _tempAvatar;
+
+      const { error } = await _db.from('profiles').update(up).eq('id', _currentUser.id);
+
+      setTimeout(() => {
+        loader.style.display = 'none';
+        if (error) {
+          _toast('Ошибка: ' + error.message);
+        } else {
+          _toast('Профиль сохранен!');
+          _hideModal('modal-edit-profile');
+          _syncSession();
+        }
+      }, 500);
+    }
+
+    function _openProfileHub() {
+      if (!_currentUser) return _showModal('modal-auth');
+      document.getElementById('edit-bio').value = _currentUser.bio || '';
+      document.getElementById('edit-avatar-preview').src = _currentUser.avatar_url || '';
+      document.getElementById('edit-avatar-frame').value = _currentUser.avatar_frame || 'frame-none';
+      document.getElementById('edit-theme-select').value = _currentUser.app_theme || 'theme-oled';
+      document.getElementById('edit-vinyl-track').value = _currentUser.vinyl_track || 'gazan_che_za_lev';
+
+      _updateFramePreview(_currentUser.avatar_frame || 'frame-none');
+      _showModal('modal-edit-profile');
+    }
+
+    function _updateFramePreview(f) {
+      document.getElementById('edit-frame-preview-wrap').className = `avatar-wrapper ${f}`;
+    }
+
+    let _tempAvatar = null;
+    function _onAvatarChange(e) {
+      const f = e.target.files[0];
+      if (!f) return;
+      const r = new FileReader();
+      r.onload = (ev) => {
+        _tempAvatar = ev.target.result;
+        document.getElementById('edit-avatar-preview').src = ev.target.result;
+      };
+      r.readAsDataURL(f);
+    }
+
+    function _previewMyProfile() {
+      _hideModal('modal-edit-profile');
+      _renderProfileModal(_currentUser);
+    }
+
+    function _renderProfileModal(p) {
+      document.getElementById('v-user-name').innerText = `@${p.username}`;
+      document.getElementById('v-user-bio').innerText = p.bio || 'Участник Nook';
+      document.getElementById('v-user-avatar').src = p.avatar_url || '';
+      document.getElementById('v-user-frame-wrap').className = `avatar-wrapper ${p.avatar_frame || 'frame-none'}`;
+
+      document.getElementById('v-user-badge-verified').style.display = p.is_verified ? 'inline' : 'none';
+      document.getElementById('v-user-badge-admin').style.display = p.is_admin ? 'inline' : 'none';
+
+      const tr = NOOK_TRACKS[p.vinyl_track || 'gazan_che_za_lev'] || NOOK_TRACKS.gazan_che_za_lev;
+      document.getElementById('v-vinyl-cover').style.backgroundImage = `url('${tr.cover}')`;
+      document.getElementById('v-vinyl-title').innerText = tr.title;
+      document.getElementById('v-vinyl-genre').innerText = tr.artist;
+
+      _showModal('modal-view-user');
+    }
+
+    function _toggleProfileVinylAudio() {
+      if (_currentUser && _currentUser.vinyl_track) {
+        _currentTrackKey = _currentUser.vinyl_track;
+      }
+      _togglePlayback();
+    }
+
+    /* ПОИСК */
+    function _onSearchInput(e) {
+      const q = e.target.value.trim().toLowerCase();
+      if (document.getElementById('tab-music').classList.contains('active')) {
+        _renderMusicTracksList(q);
+      } else {
+        _searchUsers(q);
+      }
+    }
+
+    async function _searchUsers(q) {
+      if (!q) return _loadChatsList();
+      const { data: users } = await _db.from('profiles').select('*').ilike('username', `%${q}%`).limit(20);
+      const box = document.getElementById('chats-direct-list');
+      box.innerHTML = '';
+      if (users) {
+        users.forEach(u => {
+          const item = document.createElement('div');
+          item.className = 'chat-item';
+          item.onclick = () => _openChatWith(u.id);
+          item.innerHTML = `<span style="font-weight:800;">@${u.username}</span><span style="font-size:12px; color:var(--muted);">Написать</span>`;
+          box.appendChild(item);
+        });
+      }
+    }
+
+    /* СПИСОК ЧАТОВ */
+    async function _loadChatsList() {
+      if (!_currentUser) return;
+      const box = document.getElementById('chats-direct-list');
+      const { data: users } = await _db.from('profiles').select('*').neq('id', _currentUser.id).limit(40);
+      box.innerHTML = '';
+      if (!users) return;
+
+      users.forEach(u => {
+        _profilesCache[u.id] = u;
+        const item = document.createElement('div');
+        item.className = 'chat-item';
+        item.onclick = () => _openChatWith(u.id);
+        item.innerHTML = `
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div class="avatar-wrapper ${u.avatar_frame || 'frame-none'}" style="width:44px; height:44px;">
+              <img class="avatar-inner-img" src="${u.avatar_url || ''}">
+            </div>
+            <div>
+              <div style="font-size:15px; font-weight:800;">@${u.username} ${u.is_verified ? '✓' : ''}</div>
+              <div style="font-size:12px; color:var(--muted);">${u.bio || 'Нажмите для беседы'}</div>
+            </div>
+          </div>
+          <button onclick="event.stopPropagation(); _inspectProfile('${u.id}')" style="background:none; border:none; color:var(--accent); font-size:12px; font-weight:800; cursor:pointer;">Профиль</button>
+        `;
+        box.appendChild(item);
+      });
+    }
+
+    async function _openChatWith(peerId) {
+      _activeChatPeerId = peerId;
+      const peer = _profilesCache[peerId] || (await _db.from('profiles').select('*').eq('id', peerId).maybeSingle()).data;
+      document.getElementById('chat-peer-title').innerText = `@${peer?.username || 'user'}`;
+      document.getElementById('screen-chat').classList.add('active');
+      const cont = document.getElementById('chat-messages-box');
+      cont.innerHTML = '<p style="text-align:center; color:var(--muted); font-size:12px;">Загрузка...</p>';
+
+      const { data: msgs } = await _db.from('direct_messages')
+        .select('*')
+        .or(`and(sender_id.eq.${_currentUser.id},receiver_id.eq.${peerId}),and(sender_id.eq.${peerId},receiver_id.eq.${_currentUser.id})`)
+        .order('created_at', { ascending: true });
+
+      cont.innerHTML = '';
+      if (msgs) msgs.forEach(m => _appendChatMessage(m));
+      cont.scrollTop = cont.scrollHeight;
+    }
+
+    function _closeChatScreen() {
+      document.getElementById('screen-chat').classList.remove('active');
+      _activeChatPeerId = null;
+    }
+
+    async function _sendChatMessage() {
+      const inp = document.getElementById('chat-input');
+      const text = inp.value.trim();
+      if (!text || !_activeChatPeerId) return;
+
+      inp.value = '';
+      await _db.from('direct_messages').insert({
+        sender_id: _currentUser.id, receiver_id: _activeChatPeerId, encrypted_content: btoa(encodeURIComponent(text)), msg_type: 'text'
+      });
+      _openChatWith(_activeChatPeerId);
+    }
+
+    function _appendChatMessage(m) {
+      const cont = document.getElementById('chat-messages-box');
+      const isSelf = m.sender_id === _currentUser.id;
+      let raw = '';
+      try { raw = decodeURIComponent(atob(m.encrypted_content)); } catch(e) { raw = m.encrypted_content; }
+
+      const wrap = document.createElement('div');
+      wrap.className = 'msg-wrap';
+      wrap.style.alignItems = isSelf ? 'flex-end' : 'flex-start';
+
+      const bubble = document.createElement('div');
+      bubble.className = `msg-bubble ${isSelf ? 'outgoing' : 'incoming'}`;
+
+      if (m.msg_type === 'media') {
+        try {
+          const p = JSON.parse(raw);
+          bubble.innerHTML = `<img src="${p.media}" style="width:100%; border-radius:12px; margin-bottom:4px;"><div>${p.caption || ''}</div>`;
+        } catch(e) {
+          bubble.innerText = raw;
+        }
+      } else {
+        bubble.innerText = raw;
+      }
+
+      wrap.appendChild(bubble);
+      cont.appendChild(wrap);
+    }
+
+    async function _inspectProfile(uid) {
+      _inspectedUser = _profilesCache[uid] || (await _db.from('profiles').select('*').eq('id', uid).maybeSingle()).data;
+      if (_inspectedUser) _renderProfileModal(_inspectedUser);
+    }
+
+    function _openPeerProfileFromChat() { if (_activeChatPeerId) _inspectProfile(_activeChatPeerId); }
+    function _startChatFromProfile() {
+      _hideModal('modal-view-user');
+      if (_inspectedUser) _openChatWith(_inspectedUser.id);
+    }
+
+    function _logout() {
+      localStorage.removeItem('nook_pro_session');
+      location.reload();
+    }
+
+    (async () => {
+      _syncSession();
+    })();
+  </script>
+</body>
+</html>
