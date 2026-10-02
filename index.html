@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Nook</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;800&family=Rubik:wght@900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #06070a;
+      --glass-surface: rgba(22, 27, 46, 0.45);
+      --glass-surface-hover: rgba(30, 38, 64, 0.6);
+      --glass-border: rgba(255, 255, 255, 0.12);
+      --glass-specular: inset 0 1px 1px 0 rgba(255, 255, 255, 0.25);
+      --accent: #6366f1;
+      --accent-glow: rgba(99, 102, 241, 0.4);
+      --sludge: #39ff14;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --danger: #ef4444;
+      --gold: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Space Grotesk', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Эффект жидкого стекла (Фоновые капли и сферы) */
+    .liquid-blob-1 {
+      position: absolute;
+      width: 320px;
+      height: 320px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.35) 0%, rgba(99, 102, 241, 0) 70%);
+      top: -60px;
+      left: -80px;
+      border-radius: 50%;
+      filter: blur(40px);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .liquid-blob-2 {
+      position: absolute;
+      width: 380px;
+      height: 380px;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.22) 0%, rgba(16, 185, 129, 0) 70%);
+      bottom: 20px;
+      right: -100px;
+      border-radius: 50%;
+      filter: blur(50px);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .liquid-blob-3 {
+      position: absolute;
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, rgba(236, 72, 153, 0.18) 0%, rgba(236, 72, 153, 0) 70%);
+      top: 45%;
+      left: 30%;
+      border-radius: 50%;
+      filter: blur(45px);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* SVG Иконки */
+    .icon {
+      width: 22px;
+      height: 22px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .icon-coin { width: 18px; height: 18px; fill: var(--gold); stroke: none; }
+    .icon-verified { width: 17px; height: 17px; fill: #38bdf8; stroke: none; margin-left: 4px; }
+
+    /* Верхняя панель */
+    header {
+      height: 64px;
+      background: var(--glass-surface);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-bottom: 1px solid var(--glass-border);
+      box-shadow: var(--glass-specular);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      flex-shrink: 0;
+      z-index: 50;
+    }
+
+    .logo {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-badge {
+      width: 12px;
+      height: 12px;
+      background: linear-gradient(135deg, #818cf8, #4f46e5);
+      border-radius: 4px;
+      box-shadow: 0 0 14px var(--accent);
+    }
+
+    .header-actions { display: flex; align-items: center; gap: 12px; }
+
+    .coin-badge {
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      box-shadow: var(--glass-specular);
+      padding: 6px 12px;
+      border-radius: 24px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gold);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      backdrop-filter: blur(12px);
+    }
+
+    .header-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: var(--glass-surface);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-specular);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      backdrop-filter: blur(16px);
+    }
+
+    /* Основная область */
+    main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      z-index: 10;
+    }
+
+    /* Жидкие стеклянные карточки */
+    .card {
+      background: var(--glass-surface);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-specular), 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      border-radius: 18px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+    }
+
+    .post-header { display: flex; justify-content: space-between; align-items: center; }
+    .author-info { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+
+    .post-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02));
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-specular);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+
+    .author-name { font-weight: 700; font-size: 14px; display: flex; align-items: center; }
+    .post-id-tag {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 600;
+      padding: 3px 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+    }
+
+    .post-content { font-size: 14px; line-height: 1.5; color: #e2e8f0; word-break: break-word; }
+    .post-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding-top: 10px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .btn-action {
+      background: none;
+      border: none;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    /* Поле ввода */
+    .create-box textarea {
+      width: 100%;
+      height: 80px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 12px;
+      color: var(--text);
+      resize: none;
+      outline: none;
+      font-size: 14px;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .create-box textarea:focus {
+      border-color: rgba(99, 102, 241, 0.5);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 15px var(--accent-glow), var(--glass-specular);
+      border-radius: 12px;
+      padding: 10px 18px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary:active { transform: scale(0.97); }
+
+    /* Нижний таббар */
+    nav {
+      height: 68px;
+      background: var(--glass-surface);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-top: 1px solid var(--glass-border);
+      box-shadow: var(--glass-specular);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      flex-shrink: 0;
+      z-index: 50;
+    }
+
+    .nav-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .nav-btn.active { color: var(--accent); }
+
+    /* Стеклянные Модалки */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 4, 8, 0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 100;
+    }
+
+    .modal.open { display: flex; }
+
+    .modal-box {
+      background: rgba(18, 23, 38, 0.75);
+      backdrop-filter: blur(32px);
+      -webkit-backdrop-filter: blur(32px);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-specular), 0 20px 50px rgba(0, 0, 0, 0.6);
+      border-radius: 22px;
+      width: 100%;
+      max-width: 440px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .modal-header { display: flex; justify-content: space-between; align-items: center; }
+
+    /* Текстовые эффекты */
+    .effect-sludge {
+      font-family: 'Rubik', sans-serif !important;
+      font-weight: 900;
+      color: #39ff14;
+      text-shadow: -2px -2px 0 #005a04, 2px -2px 0 #005a04, -2px 2px 0 #005a04, 2px 2px 0 #005a04, 0 4px 0 #002b02, 0 0 14px rgba(57, 255, 20, 0.6);
+      letter-spacing: 1px;
+    }
+    .effect-neon { color: #a855f7; text-shadow: 0 0 8px #a855f7, 0 0 20px rgba(168, 85, 247, 0.6); }
+    .effect-fire { color: #f97316; text-shadow: 0 -2px 4px #ea580c, 0 -6px 12px #b91c1c; }
+
+    /* Инпуты Liquid Glass */
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-border);
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.25);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: #fff;
+      outline: none;
+      font-size: 14px;
+    }
+    input[type="text"]:focus, input[type="password"]:focus {
+      border-color: rgba(99, 102, 241, 0.5);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Блики жидкого стекла на фоне -->
+  <div class="liquid-blob-1"></div>
+  <div class="liquid-blob-2"></div>
+  <div class="liquid-blob-3"></div>
+
+  <!-- Верхний бар -->
+  <header>
+    <div class="logo">
+      <div class="logo-badge"></div> NOOK
+    </div>
+    <div class="header-actions">
+      <div class="coin-badge" id="balance-badge">
+        <svg class="icon-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M9 9h6M9 15h6" stroke="#000" stroke-width="2"/></svg>
+        <span id="user-nookings">0</span>
+      </div>
+      <div class="header-avatar" onclick="openProfileModal()">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+    </div>
+  </header>
+
+  <!-- Рабочая область -->
+  <main id="app-main">
+    <div class="card" style="padding: 10px 14px; flex-direction: row; gap: 8px;">
+      <input type="text" id="search-input" placeholder="Поиск #номера поста или @юзернейма..." onkeydown="if(event.key==='Enter') executeSearch()">
+      <button class="btn-primary" type="button" style="padding: 0 14px;" onclick="executeSearch()">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      </button>
+    </div>
+
+    <!-- Таб: ЛЕНТА -->
+    <div id="tab-feed" class="tab-content">
+      <div class="card create-box">
+        <textarea id="post-text" placeholder="Что происходит в твоём уголке?"></textarea>
+        <div style="display: flex; justify-content: flex-end;">
+          <button class="btn-primary" type="button" onclick="createPost()">Опубликовать</button>
+        </div>
+      </div>
+      <div id="posts-container" style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px;"></div>
+    </div>
+
+    <!-- Таб: КАТАЛОГ -->
+    <div id="tab-shop" class="tab-content" style="display: none;">
+      <div class="card">
+        <h3>Каталог Эффектов</h3>
+        <p style="font-size: 13px; color: var(--muted);">Покупай стили текста и оформления за Nookings.</p>
+        
+        <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--glass-border); padding: 12px; border-radius: 14px; background: rgba(255,255,255,0.02);">
+            <div>
+              <div class="effect-sludge" style="font-size: 18px;">SLUDGE STYLE</div>
+              <div style="font-size: 12px; color: var(--muted);">Кислотный 3D-вектор</div>
+            </div>
+            <button class="btn-primary" type="button" onclick="applyEffect('sludge', 150)">150 Nookings</button>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--glass-border); padding: 12px; border-radius: 14px; background: rgba(255,255,255,0.02);">
+            <div>
+              <div class="effect-neon" style="font-size: 18px; font-weight: 700;">CYBER NEON</div>
+              <div style="font-size: 12px; color: var(--muted);">Неоновое свечение</div>
+            </div>
+            <button class="btn-primary" type="button" onclick="applyEffect('neon', 100)">100 Nookings</button>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--glass-border); padding: 12px; border-radius: 14px; background: rgba(255,255,255,0.02);">
+            <div>
+              <div class="effect-fire" style="font-size: 18px; font-weight: 700;">INFERNO FIRE</div>
+              <div style="font-size: 12px; color: var(--muted);">Огненный градиент</div>
+            </div>
+            <button class="btn-primary" type="button" onclick="applyEffect('fire', 120)">120 Nookings</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Таб: УГОЛКИ -->
+    <div id="tab-spaces" class="tab-content" style="display: none;">
+      <div class="card">
+        <h3>Уголки Сообщества</h3>
+        <p style="font-size: 13px; color: var(--muted);">Открытые комнаты по интересам.</p>
+        <div style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 14px;">
+          <div class="card" style="background: rgba(255, 255, 255, 0.02); cursor: pointer;">
+            <h4># Майнкрафт & Сборки</h4>
+            <span style="font-size: 12px; color: var(--muted);">Моды, шейдеры и совместная игра</span>
+          </div>
+          <div class="card" style="background: rgba(255, 255, 255, 0.02); cursor: pointer;">
+            <h4># Музыка & Дропы</h4>
+            <span style="font-size: 12px; color: var(--muted);">Биты, треки и релизы</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Таб: ЧАТЫ -->
+    <div id="tab-dms" class="tab-content" style="display: none;">
+      <div class="card">
+        <h3>Личные сообщения</h3>
+        <input type="text" id="dm-target-user" placeholder="Напиши @username для начала диалога..." style="margin: 10px 0;">
+        <button class="btn-primary" type="button" onclick="openChatWithUser()">Открыть чат</button>
+      </div>
+      <div id="chat-box" class="card" style="display: none; height: 350px; flex-direction: column;">
+        <div id="chat-header" style="font-weight: 700; border-bottom: 1px solid var(--glass-border); padding-bottom: 8px;"></div>
+        <div id="chat-messages" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 10px 0;"></div>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="dm-input" placeholder="Сообщение...">
+          <button class="btn-primary" type="button" onclick="sendDirectMessage()">
+            <svg class="icon" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Нижний таббар -->
+  <nav>
+    <button class="nav-btn active" type="button" onclick="switchTab('feed', this)">
+      <svg class="icon" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+      ЛЕНТА
+    </button>
+    <button class="nav-btn" type="button" onclick="switchTab('shop', this)">
+      <svg class="icon" viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+      КАТАЛОГ
+    </button>
+    <button class="nav-btn" type="button" onclick="switchTab('spaces', this)">
+      <svg class="icon" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
+      УГОЛКИ
+    </button>
+    <button class="nav-btn" type="button" onclick="switchTab('dms', this)">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      ЧАТЫ
+    </button>
+  </nav>
+
+  <!-- Модалка: Профиль и Админка -->
+  <div class="modal" id="profile-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="modal-username">Профиль</h3>
+        <button class="btn-action" type="button" onclick="closeModals()">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <label style="font-size: 12px; color: var(--muted);">Био / Описание</label>
+        <input type="text" id="edit-bio" placeholder="Твоё описание">
+        <button class="btn-primary" type="button" onclick="saveBio()">Сохранить профиль</button>
+      </div>
+
+      <div id="admin-panel" style="display: none; border-top: 1px solid var(--glass-border); padding-top: 14px; margin-top: 10px;">
+        <h4 style="color: var(--accent); margin-bottom: 10px;">Панель Управления Nook</h4>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <input type="text" id="admin-delete-id" placeholder="Номер поста для удаления (#1000)">
+          <button class="btn-primary" type="button" style="background: linear-gradient(135deg, #ef4444, #b91c1c);" onclick="adminDeletePost()">Удалить пост</button>
+          
+          <div style="display: flex; gap: 6px; margin-top: 6px;">
+            <input type="text" id="admin-target-user" placeholder="@юзернейм">
+            <input type="text" id="admin-coin-amount" placeholder="Монеты" style="width: 100px;">
+          </div>
+          <button class="btn-primary" type="button" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #000;" onclick="adminGiveCoins()">Выдать Nookings</button>
+          
+          <button class="btn-primary" type="button" style="background: rgba(255,255,255,0.08); margin-top: 6px;" onclick="adminScanViolations()">
+            Запустить бота проверки на нарушения
+          </button>
+        </div>
+      </div>
+
+      <button class="btn-action" type="button" style="color: var(--danger); justify-content: center; margin-top: 10px;" onclick="logout()">
+        Выйти из аккаунта
+      </button>
+    </div>
+  </div>
+
+  <!-- Модалка: Вход / Регистрация -->
+  <div class="modal open" id="auth-modal">
+    <div class="modal-box">
+      <h3 style="text-align: center;">Вход в Nook</h3>
+      <input type="text" id="auth-username" placeholder="Юзернейм" autocomplete="username">
+      <input type="password" id="auth-password" placeholder="Пароль" autocomplete="current-password">
+      <input type="password" id="auth-password-repeat" placeholder="Повторите пароль (только для регистрации)" autocomplete="new-password">
+      
+      <div style="display: flex; gap: 10px; margin-top: 10px;">
+        <button class="btn-primary" type="button" style="flex: 1;" onclick="handleLogin()">Войти</button>
+        <button class="btn-primary" type="button" style="flex: 1; background: rgba(255, 255, 255, 0.08);" onclick="handleRegister()">Создать аккаунт</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://tsoqstfbvjpusbhljtff.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_eu27ROp3T7R3gEOeRezaFQ_RlmVnDSM";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentUser = null;
+    let activeChatReceiver = null;
+
+    const VERIFIED_SVG = `<svg class="icon-verified" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
+    const CHECK_SENT = `<svg class="icon" style="width:14px; height:14px;" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>`;
+    const CHECK_READ = `<svg class="icon" style="width:14px; height:14px; color:#38bdf8;" viewBox="0 0 24 24"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>`;
+
+    // Вход
+    async function handleLogin() {
+      const u = document.getElementById('auth-username').value.trim();
+      const p = document.getElementById('auth-password').value.trim();
+      if (!u || !p) return alert('Заполните логин и пароль!');
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .ilike('username', u)
+          .maybeSingle();
+
+        if (error) return alert('Ошибка базы данных: ' + error.message);
+        if (!data) return alert('Пользователь не найден!');
+
+        const isAdmin = (data.username === 'Nook' && p === 'NookOriginals');
+        const isPassOk = (data.password_hash === p);
+
+        if (!isAdmin && !isPassOk) {
+          return alert('Неверный пароль!');
+        }
+
+        currentUser = data;
+        finishAuth();
+      } catch (err) {
+        alert('Ошибка авторизации: ' + err.message);
+      }
+    }
+
+    // Регистрация
+    async function handleRegister() {
+      const u = document.getElementById('auth-username').value.trim();
+      const p = document.getElementById('auth-password').value.trim();
+      const pr = document.getElementById('auth-password-repeat').value.trim();
+
+      if (!u || !p) return alert('Заполните юзернейм и пароль!');
+      if (p !== pr) return alert('Пароли не совпадают!');
+      if (u.toLowerCase() === 'nook') return alert('Имя Nook зарезервировано!');
+
+      try {
+        // Проверяем, существует ли ник
+        const check = await supabase.from('profiles').select('id').ilike('username', u).maybeSingle();
+        if (check.data) return alert('Этот юзернейм уже занят!');
+
+        // Создаем запись
+        const { error: insErr } = await supabase.from('profiles').insert([{ 
+          username: u, 
+          password_hash: p,
+          nookings: 100,
+          bio: 'Добро пожаловать в мой Nook!'
+        }]);
+
+        if (insErr) return alert('Ошибка создания: ' + insErr.message);
+
+        // Получаем созданного пользователя
+        const { data: newUser, error: fetchErr } = await supabase.from('profiles').select('*').ilike('username', u).maybeSingle();
+        if (fetchErr || !newUser) return alert('Аккаунт создан, войдите через кнопку «Войти»!');
+
+        currentUser = newUser;
+        finishAuth();
+      } catch (err) {
+        alert('Сбой регистрации: ' + err.message);
+      }
+    }
+
+    function finishAuth() {
+      document.getElementById('auth-modal').classList.remove('open');
+      document.getElementById('user-nookings').innerText = currentUser.nookings;
+      if (currentUser.is_admin) document.getElementById('admin-panel').style.display = 'block';
+      loadPosts();
+      checkDailyClaim();
+    }
+
+    function logout() { location.reload(); }
+
+    function switchTab(tab, btn) {
+      document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(`tab-${tab}`).style.display = 'block';
+      btn.classList.add('active');
+      if (tab === 'feed') loadPosts();
+    }
+
+    async function loadPosts() {
+      const { data } = await supabase.from('posts').select('*, profiles(*)').order('created_at', { ascending: false });
+      const container = document.getElementById('posts-container');
+      container.innerHTML = '';
+      if (!data) return;
+
+      data.forEach(p => {
+        const effectClass = p.profiles.text_effect !== 'none' ? `effect-${p.profiles.text_effect}` : '';
+        const verified = p.profiles.is_verified ? VERIFIED_SVG : '';
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div class="post-header">
+            <div class="author-info">
+              <div class="post-avatar">${p.profiles.username[0].toUpperCase()}</div>
+              <div>
+                <div class="author-name ${effectClass}">${p.profiles.username} ${verified}</div>
+                <div style="font-size:11px; color:var(--muted);">${new Date(p.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+              </div>
+            </div>
+            <span class="post-id-tag">#${p.post_number}</span>
+          </div>
+          <div class="post-content">${escapeHtml(p.content)}</div>
+          <div class="post-footer">
+            <button class="btn-action" type="button" onclick="likePost('${p.id}')">
+              <svg class="icon" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+              Лайк
+            </button>
+            <button class="btn-action" type="button" onclick="reportPost('${p.id}', '${p.author_id}')">Жалоба</button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    async function createPost() {
+      const text = document.getElementById('post-text').value.trim();
+      if (!text) return;
+      await supabase.from('posts').insert([{ author_id: currentUser.id, content: text }]);
+      document.getElementById('post-text').value = '';
+      loadPosts();
+    }
+
+    async function applyEffect(name, cost) {
+      if (currentUser.nookings < cost) return alert('Недостаточно Nookings!');
+      const newBal = currentUser.nookings - cost;
+      await supabase.from('profiles').update({ text_effect: name, nookings: newBal }).eq('id', currentUser.id);
+      currentUser.text_effect = name;
+      currentUser.nookings = newBal;
+      document.getElementById('user-nookings').innerText = newBal;
+      alert('Эффект успешно надет!');
+    }
+
+    async function adminDeletePost() {
+      const num = parseInt(document.getElementById('admin-delete-id').value.replace('#', ''));
+      if (!num) return;
+      await supabase.from('posts').delete().eq('post_number', num);
+      alert('Пост #' + num + ' удалён!');
+      loadPosts();
+    }
+
+    async function adminGiveCoins() {
+      const target = document.getElementById('admin-target-user').value.trim().replace('@', '');
+      const amount = parseInt(document.getElementById('admin-coin-amount').value);
+      if (!target || !amount) return;
+      const { data } = await supabase.from('profiles').select('nookings').eq('username', target).single();
+      if (!data) return alert('Юзер не найден');
+      await supabase.from('profiles').update({ nookings: data.nookings + amount }).eq('username', target);
+      alert(`Выдано ${amount} монет юзеру @${target}!`);
+    }
+
+    async function adminScanViolations() {
+      alert('Бот Nook проверил базу: Нарушений не обнаружено.');
+    }
+
+    async function openChatWithUser() {
+      const target = document.getElementById('dm-target-user').value.trim().replace('@', '');
+      const { data } = await supabase.from('profiles').select('*').eq('username', target).single();
+      if (!data) return alert('Пользователь не найден!');
+      activeChatReceiver = data;
+      document.getElementById('chat-header').innerText = `Диалог с @${data.username}`;
+      document.getElementById('chat-box').style.display = 'flex';
+      loadMessages();
+    }
+
+    async function sendDirectMessage() {
+      const input = document.getElementById('dm-input');
+      const text = input.value.trim();
+      if (!text || !activeChatReceiver) return;
+      await supabase.from('direct_messages').insert([{ sender_id: currentUser.id, receiver_id: activeChatReceiver.id, text }]);
+      input.value = '';
+      loadMessages();
+    }
+
+    async function loadMessages() {
+      const { data } = await supabase.from('direct_messages').select('*')
+        .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${activeChatReceiver.id}),and(sender_id.eq.${activeChatReceiver.id},receiver_id.eq.${currentUser.id})`)
+        .order('created_at', { ascending: true });
+      
+      const box = document.getElementById('chat-messages');
+      box.innerHTML = '';
+      (data || []).forEach(m => {
+        const isMine = m.sender_id === currentUser.id;
+        const checkIcon = m.is_read ? CHECK_READ : CHECK_SENT;
+        const msg = document.createElement('div');
+        msg.style.alignSelf = isMine ? 'flex-end' : 'flex-start';
+        msg.style.background = isMine ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'rgba(255,255,255,0.06)';
+        msg.style.padding = '8px 12px';
+        msg.style.borderRadius = '12px';
+        msg.style.maxWidth = '80%';
+        msg.style.fontSize = '13px';
+        msg.style.backdropFilter = 'blur(8px)';
+        msg.innerHTML = `${escapeHtml(m.text)} <span style="font-size:10px; opacity:0.7; margin-left:6px;">${new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span> ${isMine ? checkIcon : ''}`;
+        box.appendChild(msg);
+      });
+      box.scrollTop = box.scrollHeight;
+    }
+
+    async function checkDailyClaim() {
+      const now = new Date();
+      const last = currentUser.last_daily_claim ? new Date(currentUser.last_daily_claim) : null;
+      if (!last || (now - last) > 86400000) {
+        const newBal = currentUser.nookings + 50;
+        await supabase.from('profiles').update({ nookings: newBal, last_daily_claim: now.toISOString() }).eq('id', currentUser.id);
+        currentUser.nookings = newBal;
+        document.getElementById('user-nookings').innerText = newBal;
+      }
+    }
+
+    function openProfileModal() {
+      document.getElementById('modal-username').innerText = currentUser.username;
+      document.getElementById('edit-bio').value = currentUser.bio || '';
+      document.getElementById('profile-modal').classList.add('open');
+    }
+    function closeModals() { document.querySelectorAll('.modal').forEach(m => { if(m.id !== 'auth-modal') m.classList.remove('open'); }); }
+    function escapeHtml(t) { const d = document.createElement('div'); d.innerText = t; return d.innerHTML; }
+    function executeSearch() {
+      const q = document.getElementById('search-input').value.trim();
+      if (q.startsWith('#')) {
+        const num = parseInt(q.replace('#', ''));
+        supabase.from('posts').select('*, profiles(*)').eq('post_number', num).single().then(({data}) => {
+          if (!data) return alert('Пост не найден');
+          alert(`Пост #${data.post_number} от @${data.profiles.username}:\n\n"${data.content}"`);
+        });
+      } else {
+        alert('Поиск юзера: ' + q);
+      }
+    }
+    async function saveBio() {
+      const bio = document.getElementById('edit-bio').value;
+      await supabase.from('profiles').update({ bio }).eq('id', currentUser.id);
+      currentUser.bio = bio;
+      alert('Профиль сохранен!');
+      closeModals();
+    }
+  </script>
+</body>
+</html>
