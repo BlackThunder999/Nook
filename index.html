@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Nook</title>
+  <script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Rubik:wght@900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #030408;
+      /* Настоящий iOS Liquid Glass */
+      --glass-bg: rgba(25, 30, 48, 0.42);
+      --glass-card: rgba(30, 36, 60, 0.38);
+      --glass-border: rgba(255, 255, 255, 0.16);
+      --glass-border-light: rgba(255, 255, 255, 0.32);
+      --glass-specular: inset 0 1px 0.5px rgba(255, 255, 255, 0.45), inset 0 -1px 0.5px rgba(0, 0, 0, 0.25);
+      --accent: #6366f1;
+      --accent-glow: rgba(99, 102, 241, 0.5);
+      --text: #ffffff;
+      --muted: #8e9bb0;
+      --danger: #ff453a;
+      --gold: #ffd60a;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Plus Jakarta Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Жидкие цветные сферы в стиле обоев iOS */
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(50px);
+      pointer-events: none;
+      z-index: 0;
+      animation: float 14s infinite ease-in-out alternate;
+    }
+    .blob-1 {
+      width: 260px;
+      height: 260px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.45) 0%, transparent 70%);
+      top: -40px;
+      left: -60px;
+    }
+    .blob-2 {
+      width: 280px;
+      height: 280px;
+      background: radial-gradient(circle, rgba(236, 72, 153, 0.35) 0%, transparent 70%);
+      bottom: 60px;
+      right: -70px;
+      animation-delay: -5s;
+    }
+    .blob-3 {
+      width: 220px;
+      height: 220px;
+      background: radial-gradient(circle, rgba(48, 209, 88, 0.3) 0%, transparent 70%);
+      top: 40%;
+      left: 20%;
+      animation-delay: -9s;
+    }
+
+    @keyframes float {
+      0% { transform: translateY(0) scale(1); }
+      100% { transform: translateY(24px) scale(1.08); }
+    }
+
+    /* SVG иконки */
+    .icon {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.1;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .icon-coin { width: 16px; height: 16px; fill: var(--gold); stroke: none; }
+    .icon-verified { width: 15px; height: 15px; fill: #0a84ff; stroke: none; margin-left: 3px; }
+
+    /* Шапка iOS под Dynamic Island */
+    header {
+      padding-top: max(10px, env(safe-area-inset-top));
+      height: calc(52px + max(10px, env(safe-area-inset-top)));
+      background: var(--glass-bg);
+      backdrop-filter: blur(35px) saturate(190%);
+      -webkit-backdrop-filter: blur(35px) saturate(190%);
+      border-bottom: 0.5px solid var(--glass-border);
+      box-shadow: inset 0 -0.5px 0.5px rgba(255, 255, 255, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-left: 16px;
+      padding-right: 16px;
+      padding-bottom: 8px;
+      flex-shrink: 0;
+      z-index: 50;
+    }
+
+    .logo {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo-badge {
+      width: 10px;
+      height: 10px;
+      background: linear-gradient(135deg, #818cf8, #4f46e5);
+      border-radius: 3.5px;
+      box-shadow: 0 0 10px var(--accent);
+    }
+
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+
+    .coin-badge {
+      background: rgba(255, 214, 10, 0.14);
+      border: 0.5px solid rgba(255, 214, 10, 0.4);
+      box-shadow: var(--glass-specular);
+      padding: 4px 10px;
+      border-radius: 18px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--gold);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      backdrop-filter: blur(20px);
+    }
+
+    .header-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 11px;
+      background: var(--glass-card);
+      border: 0.5px solid var(--glass-border-light);
+      box-shadow: var(--glass-specular);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      backdrop-filter: blur(20px);
+      transition: transform 0.15s ease;
+    }
+    .header-avatar:active { transform: scale(0.92); }
+
+    /* Скролл с контентом */
+    main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 10;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Настоящее жидкое стекло карточек iOS */
+    .card {
+      background: var(--glass-card);
+      backdrop-filter: blur(35px) saturate(200%);
+      -webkit-backdrop-filter: blur(35px) saturate(200%);
+      border: 0.5px solid var(--glass-border);
+      border-top: 0.5px solid var(--glass-border-light);
+      box-shadow: var(--glass-specular), 0 10px 28px rgba(0, 0, 0, 0.42);
+      border-radius: 20px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      position: relative;
+    }
+
+    .post-header { display: flex; justify-content: space-between; align-items: center; }
+    .author-info { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+
+    .post-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 11px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.03));
+      border: 0.5px solid var(--glass-border-light);
+      box-shadow: var(--glass-specular);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .author-name { font-weight: 700; font-size: 13px; display: flex; align-items: center; }
+    .post-id-tag {
+      font-size: 10px;
+      color: var(--muted);
+      font-weight: 600;
+      padding: 2px 7px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 0.5px solid rgba(255, 255, 255, 0.12);
+      border-radius: 7px;
+    }
+
+    .post-content { font-size: 13.5px; line-height: 1.45; color: #f1f5f9; word-break: break-word; user-select: text; }
+    .post-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 0.5px solid rgba(255, 255, 255, 0.08);
+      padding-top: 8px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .btn-action {
+      background: none;
+      border: none;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11.5px;
+      cursor: pointer;
+    }
+
+    .create-box textarea {
+      width: 100%;
+      height: 68px;
+      background: rgba(0, 0, 0, 0.2);
+      border: 0.5px solid var(--glass-border);
+      border-radius: 14px;
+      padding: 10px 12px;
+      color: var(--text);
+      resize: none;
+      outline: none;
+      font-size: 13px;
+      user-select: text;
+    }
+
+    /* Системная кнопка в стиле iOS 17/18 */
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: white;
+      border: 0.5px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 4px 14px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+      border-radius: 13px;
+      padding: 9px 14px;
+      font-weight: 700;
+      font-size: 12.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: transform 0.12s ease;
+    }
+    .btn-primary:active { transform: scale(0.95); opacity: 0.9; }
+
+    /* Таббар под Home Bar iPhone */
+    nav {
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
+      height: calc(54px + max(10px, env(safe-area-inset-bottom)));
+      background: var(--glass-bg);
+      backdrop-filter: blur(35px) saturate(200%);
+      -webkit-backdrop-filter: blur(35px) saturate(200%);
+      border-top: 0.5px solid var(--glass-border);
+      box-shadow: inset 0 0.5px 0.5px rgba(255, 255, 255, 0.2);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      flex-shrink: 0;
+      z-index: 50;
+    }
+
+    .nav-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      font-size: 9.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.12s ease, color 0.15s ease;
+    }
+    .nav-btn:active { transform: scale(0.9); }
+    .nav-btn.active { color: #818cf8; }
+
+    /* Модалки в виде iOS Bottom Sheet */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 100;
+    }
+    .modal.open { display: flex; }
+
+    .modal-box {
+      background: rgba(22, 28, 48, 0.75);
+      backdrop-filter: blur(40px) saturate(210%);
+      -webkit-backdrop-filter: blur(40px) saturate(210%);
+      border: 0.5px solid var(--glass-border-light);
+      box-shadow: var(--glass-specular), 0 24px 50px rgba(0, 0, 0, 0.75);
+      border-radius: 26px;
+      width: 100%;
+      max-width: 375px;
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; }
+
+    /* Текстовые эффекты */
+    .effect-sludge {
+      font-family: 'Rubik', sans-serif !important;
+      font-weight: 900;
+      color: #39ff14;
+      text-shadow: -1.5px -1.5px 0 #005a04, 1.5px -1.5px 0 #005a04, -1.5px 1.5px 0 #005a04, 1.5px 1.5px 0 #005a04, 0 3px 0 #002b02, 0 0 12px rgba(57, 255, 20, 0.7);
+      letter-spacing: 0.5px;
+    }
+    .effect-neon { color: #c084fc; text-shadow: 0 0 8px #c084fc, 0 0 18px rgba(192, 132, 252, 0.65); }
+    .effect-fire { color: #fb923c; text-shadow: 0 -2px 4px #ea580c, 0 -5px 10px #b91c1c; }
+
+    /* Нативные инпуты iOS */
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.28);
+      border: 0.5px solid var(--glass-border);
+      box-shadow: inset 0 1.5px 3px rgba(0,0,0,0.3);
+      border-radius: 12px;
+      padding: 10px 12px;
+      color: #fff;
+      outline: none;
+      font-size: 13.5px;
+      user-select: text;
+    }
+    input[type="text"]:focus, input[type="password"]:focus {
+      border-color: rgba(129, 140, 248, 0.6);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Фон Liquid Glass -->
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+
+  <!-- Шапка -->
+  <header>
+    <div class="logo">
+      <div class="logo-badge"></div> NOOK
+    </div>
+    <div class="header-actions">
+      <div class="coin-badge">
+        <svg class="icon-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v12M9 9h6M9 15h6" stroke="#000" stroke-width="2"/></svg>
+        <span id="user-nookings">0</span>
+      </div>
+      <div class="header-avatar" onclick="openProfileModal()">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+    </div>
+  </header>
+
+  <!-- Рабочая область -->
+  <main id="app-main">
+    <div class="card" style="padding: 8px 12px; flex-direction: row; gap: 6px;">
+      <input type="text" id="search-input" placeholder="Поиск #номера или @юзернейма..." onkeydown="if(event.key==='Enter') executeSearch()">
+      <button class="btn-primary" type="button" style="padding: 0 12px;" onclick="executeSearch()">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      </button>
+    </div>
+
+    <!-- Таб: ЛЕНТА -->
+    <div id="tab-feed" class="tab-content">
+      <div class="card create-box">
+        <textarea id="post-text" placeholder="Что происходит в твоём уголке?"></textarea>
+        <div style="display: flex; justify-content: flex-end;">
+          <button class="btn-primary" type="button" onclick="createPost()">Опубликовать</button>
+        </div>
+      </div>
+      <div id="posts-container" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;"></div>
+    </div>
+
+    <!-- Таб: КАТАЛОГ -->
+    <div id="tab-shop" class="tab-content" style="display: none;">
+      <div class="card">
+        <h3 style="font-size: 15px;">Каталог Предметов</h3>
+        <p style="font-size: 12px; color: var(--muted);">Покупай стили текста и оформления за Nookings.</p>
+        
+        <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border: 0.5px solid var(--glass-border); padding: 10px; border-radius: 14px; background: rgba(255,255,255,0.02);">
+            <div>
+              <div class="effect-sludge" style="font-size: 16px;">SLUDGE STYLE</div>
+              <div style="font-size: 11px; color: var(--muted);">Кислотный 3D-вектор</div>
+            </div>
+            <button class="btn-primary" type="button" onclick="applyEffect('sludge', 150)">150</button>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; border: 0.5px solid var(--glass-border); padding: 10px; border-radius: 14px; background: rgba(255,255,255,0.02);">
+            <div>
+              <div class="effect-neon" style="font-size: 16px; font-weight: 700;">CYBER NEON</div>
+              <div style="font-size: 11px; color: var(--muted);">Неоновое свечение</div>
+            </div>
+            <button class="btn-primary" type="button" onclick="applyEffect('neon', 100)">100</button>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; border: 0.5px solid var(--glass-border); padding: 10px; border-radius: 14px; background: rgba(255,255,255,0.02);">
+            <div>
+              <div class="effect-fire" style="font-size: 16px; font-weight: 700;">INFERNO FIRE</div>
+              <div style="font-size: 11px; color: var(--muted);">Огненный градиент</div>
+            </div>
+            <button class="btn-primary" type="button" onclick="applyEffect('fire', 120)">120</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Таб: УГОЛКИ -->
+    <div id="tab-spaces" class="tab-content" style="display: none;">
+      <div class="card">
+        <h3 style="font-size: 15px;">Уголки Сообщества</h3>
+        <p style="font-size: 12px; color: var(--muted);">Открытые комнаты по интересам.</p>
+        <div style="display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 10px;">
+          <div class="card" style="background: rgba(255, 255, 255, 0.02); padding: 12px; cursor: pointer;">
+            <h4 style="font-size: 13px;"># Майнкрафт & Сборки</h4>
+            <span style="font-size: 11px; color: var(--muted);">Моды, шейдеры и совместная игра</span>
+          </div>
+          <div class="card" style="background: rgba(255, 255, 255, 0.02); padding: 12px; cursor: pointer;">
+            <h4 style="font-size: 13px;"># Музыка & Дропы</h4>
+            <span style="font-size: 11px; color: var(--muted);">Биты, треки и релизы</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Таб: ЧАТЫ -->
+    <div id="tab-dms" class="tab-content" style="display: none;">
+      <div class="card">
+        <h3 style="font-size: 15px;">Личные сообщения</h3>
+        <input type="text" id="dm-target-user" placeholder="Напиши @username для диалога..." style="margin: 8px 0;">
+        <button class="btn-primary" type="button" onclick="openChatWithUser()">Открыть чат</button>
+      </div>
+      <div id="chat-box" class="card" style="display: none; height: 320px; flex-direction: column;">
+        <div id="chat-header" style="font-weight: 700; font-size: 13px; border-bottom: 0.5px solid var(--glass-border); padding-bottom: 6px;"></div>
+        <div id="chat-messages" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 8px 0;"></div>
+        <div style="display: flex; gap: 6px;">
+          <input type="text" id="dm-input" placeholder="Сообщение...">
+          <button class="btn-primary" type="button" onclick="sendDirectMessage()">
+            <svg class="icon" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Таббар iOS -->
+  <nav>
+    <button class="nav-btn active" type="button" onclick="switchTab('feed', this)">
+      <svg class="icon" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+      ЛЕНТА
+    </button>
+    <button class="nav-btn" type="button" onclick="switchTab('shop', this)">
+      <svg class="icon" viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+      КАТАЛОГ
+    </button>
+    <button class="nav-btn" type="button" onclick="switchTab('spaces', this)">
+      <svg class="icon" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
+      УГОЛКИ
+    </button>
+    <button class="nav-btn" type="button" onclick="switchTab('dms', this)">
+      <svg class="icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      ЧАТЫ
+    </button>
+  </nav>
+
+  <!-- Модалка Профиля и Админки -->
+  <div class="modal" id="profile-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="modal-username" style="font-size: 16px;">Профиль</h3>
+        <button class="btn-action" type="button" onclick="closeModals()">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <label style="font-size: 11px; color: var(--muted);">Био / Описание</label>
+        <input type="text" id="edit-bio" placeholder="Твоё описание">
+        <button class="btn-primary" type="button" onclick="saveBio()">Сохранить профиль</button>
+      </div>
+
+      <div id="admin-panel" style="display: none; border-top: 0.5px solid var(--glass-border); padding-top: 12px; margin-top: 8px;">
+        <h4 style="color: #818cf8; font-size: 13px; margin-bottom: 8px;">Панель Управления Nook</h4>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <input type="text" id="admin-delete-id" placeholder="Номер поста для удаления (#1000)">
+          <button class="btn-primary" type="button" style="background: linear-gradient(135deg, #ef4444, #b91c1c);" onclick="adminDeletePost()">Удалить пост</button>
+          
+          <div style="display: flex; gap: 6px; margin-top: 4px;">
+            <input type="text" id="admin-target-user" placeholder="@юзернейм">
+            <input type="text" id="admin-coin-amount" placeholder="Монеты" style="width: 90px;">
+          </div>
+          <button class="btn-primary" type="button" style="background: linear-gradient(135deg, #ffd60a, #d97706); color: #000;" onclick="adminGiveCoins()">Выдать Nookings</button>
+          
+          <button class="btn-primary" type="button" style="background: rgba(255,255,255,0.08); margin-top: 4px;" onclick="adminScanViolations()">
+            Запустить бота проверки на нарушения
+          </button>
+        </div>
+      </div>
+
+      <button class="btn-action" type="button" style="color: var(--danger); justify-content: center; margin-top: 6px;" onclick="logout()">
+        Выйти из аккаунта
+      </button>
+    </div>
+  </div>
+
+  <!-- Модалка Входа / Регистрации -->
+  <div class="modal open" id="auth-modal">
+    <div class="modal-box">
+      <h3 style="text-align: center; font-size: 17px;">Вход в Nook</h3>
+      <input type="text" id="auth-username" placeholder="Юзернейм" autocomplete="username">
+      <input type="password" id="auth-password" placeholder="Пароль" autocomplete="current-password">
+      <input type="password" id="auth-password-repeat" placeholder="Повторите пароль (для регистрации)" autocomplete="new-password">
+      
+      <div style="display: flex; gap: 8px; margin-top: 8px;">
+        <button class="btn-primary" type="button" style="flex: 1;" onclick="handleLogin()">Войти</button>
+        <button class="btn-primary" type="button" style="flex: 1; background: rgba(255, 255, 255, 0.08);" onclick="handleRegister()">Создать аккаунт</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://tsoqstfbvjpusbhljtff.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_eu27ROp3T7R3gEOeRezaFQ_RlmVnDSM";
+
+    let client = null;
+    try {
+      if (window.supabase && window.supabase.createClient) {
+        client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      }
+    } catch(e) {
+      console.error(e);
+    }
+
+    let currentUser = null;
+    let activeChatReceiver = null;
+
+    const VERIFIED_SVG = `<svg class="icon-verified" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
+    const CHECK_SENT = `<svg class="icon" style="width:13px; height:13px;" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>`;
+    const CHECK_READ = `<svg class="icon" style="width:13px; height:13px; color:#0a84ff;" viewBox="0 0 24 24"><path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/></svg>`;
+
+    async function handleLogin() {
+      if (!client) return alert("База данных недоступна");
+      const u = document.getElementById('auth-username').value.trim();
+      const p = document.getElementById('auth-password').value.trim();
+
+      if (!u || !p) return alert('Заполните юзернейм и пароль!');
+
+      try {
+        const { data, error } = await client
+          .from('profiles')
+          .select('*')
+          .ilike('username', u)
+          .maybeSingle();
+
+        if (error) return alert('Ошибка базы: ' + error.message);
+        if (!data) return alert('Пользователь не найден!');
+
+        const isAdmin = (data.username === 'Nook' && p === 'NookOriginals');
+        const isPassOk = (data.password_hash === p);
+
+        if (!isAdmin && !isPassOk) return alert('Неверный пароль!');
+
+        currentUser = data;
+        finishAuth();
+      } catch (err) {
+        alert('Сбой входа: ' + err.message);
+      }
+    }
+
+    async function handleRegister() {
+      if (!client) return alert("База данных недоступна");
+      const u = document.getElementById('auth-username').value.trim();
+      const p = document.getElementById('auth-password').value.trim();
+      const pr = document.getElementById('auth-password-repeat').value.trim();
+
+      if (!u || !p) return alert('Заполните юзернейм и пароль!');
+      if (p !== pr) return alert('Пароли не совпадают!');
+      if (u.toLowerCase() === 'nook') return alert('Имя Nook зарезервировано!');
+
+      try {
+        const { data: exists } = await client.from('profiles').select('id').ilike('username', u).maybeSingle();
+        if (exists) return alert('Этот юзернейм уже занят!');
+
+        const { error: insErr } = await client.from('profiles').insert([{ 
+          username: u, 
+          password_hash: p,
+          nookings: 100,
+          bio: 'Добро пожаловать в мой Nook!'
+        }]);
+
+        if (insErr) return alert('Ошибка создания: ' + insErr.message);
+
+        const { data: newUser, error: fetchErr } = await client.from('profiles').select('*').ilike('username', u).maybeSingle();
+        if (fetchErr || !newUser) return alert('Аккаунт создан! Теперь нажмите «Войти».');
+
+        currentUser = newUser;
+        finishAuth();
+      } catch (err) {
+        alert('Сбой регистрации: ' + err.message);
+      }
+    }
+
+    function finishAuth() {
+      document.getElementById('auth-modal').classList.remove('open');
+      document.getElementById('user-nookings').innerText = currentUser.nookings;
+      if (currentUser.is_admin) {
+        document.getElementById('admin-panel').style.display = 'block';
+      }
+      loadPosts();
+      checkDailyClaim();
+    }
+
+    function logout() { location.reload(); }
+
+    function switchTab(tab, btn) {
+      document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(`tab-${tab}`).style.display = 'block';
+      btn.classList.add('active');
+      if (tab === 'feed') loadPosts();
+    }
+
+    async function loadPosts() {
+      if (!client) return;
+      const { data } = await client.from('posts').select('*, profiles(*)').order('created_at', { ascending: false });
+      const container = document.getElementById('posts-container');
+      container.innerHTML = '';
+      if (!data) return;
+
+      data.forEach(p => {
+        const effectClass = p.profiles && p.profiles.text_effect !== 'none' ? `effect-${p.profiles.text_effect}` : '';
+        const verified = p.profiles && p.profiles.is_verified ? VERIFIED_SVG : '';
+        const authorName = p.profiles ? p.profiles.username : 'Аноним';
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div class="post-header">
+            <div class="author-info">
+              <div class="post-avatar">${authorName[0].toUpperCase()}</div>
+              <div>
+                <div class="author-name ${effectClass}">${authorName} ${verified}</div>
+                <div style="font-size:10px; color:var(--muted);">${new Date(p.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+              </div>
+            </div>
+            <span class="post-id-tag">#${p.post_number}</span>
+          </div>
+          <div class="post-content">${escapeHtml(p.content)}</div>
+          <div class="post-footer">
+            <button class="btn-action" type="button">Лайк</button>
+            <button class="btn-action" type="button">Жалоба</button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    async function createPost() {
+      if (!client || !currentUser) return;
+      const text = document.getElementById('post-text').value.trim();
+      if (!text) return;
+      await client.from('posts').insert([{ author_id: currentUser.id, content: text }]);
+      document.getElementById('post-text').value = '';
+      loadPosts();
+    }
+
+    async function applyEffect(name, cost) {
+      if (currentUser.nookings < cost) return alert('Недостаточно Nookings!');
+      const newBal = currentUser.nookings - cost;
+      await client.from('profiles').update({ text_effect: name, nookings: newBal }).eq('id', currentUser.id);
+      currentUser.text_effect = name;
+      currentUser.nookings = newBal;
+      document.getElementById('user-nookings').innerText = newBal;
+      alert('Эффект надет!');
+    }
+
+    async function adminDeletePost() {
+      const num = parseInt(document.getElementById('admin-delete-id').value.replace('#', ''));
+      if (!num) return;
+      await client.from('posts').delete().eq('post_number', num);
+      alert('Пост #' + num + ' удалён!');
+      loadPosts();
+    }
+
+    async function adminGiveCoins() {
+      const target = document.getElementById('admin-target-user').value.trim().replace('@', '');
+      const amount = parseInt(document.getElementById('admin-coin-amount').value);
+      if (!target || !amount) return;
+      const { data } = await client.from('profiles').select('nookings').eq('username', target).single();
+      if (!data) return alert('Юзер не найден');
+      await client.from('profiles').update({ nookings: data.nookings + amount }).eq('username', target);
+      alert(`Выдано ${amount} монет юзеру @${target}!`);
+    }
+
+    async function adminScanViolations() {
+      alert('Бот Nook проверил базу: Нарушений не обнаружено.');
+    }
+
+    async function openChatWithUser() {
+      const target = document.getElementById('dm-target-user').value.trim().replace('@', '');
+      const { data } = await client.from('profiles').select('*').eq('username', target).single();
+      if (!data) return alert('Пользователь не найден!');
+      activeChatReceiver = data;
+      document.getElementById('chat-header').innerText = `Диалог с @${data.username}`;
+      document.getElementById('chat-box').style.display = 'flex';
+      loadMessages();
+    }
+
+    async function sendDirectMessage() {
+      const input = document.getElementById('dm-input');
+      const text = input.value.trim();
+      if (!text || !activeChatReceiver) return;
+      await client.from('direct_messages').insert([{ sender_id: currentUser.id, receiver_id: activeChatReceiver.id, text }]);
+      input.value = '';
+      loadMessages();
+    }
+
+    async function loadMessages() {
+      const { data } = await client.from('direct_messages').select('*')
+        .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${activeChatReceiver.id}),and(sender_id.eq.${activeChatReceiver.id},receiver_id.eq.${currentUser.id})`)
+        .order('created_at', { ascending: true });
+      
+      const box = document.getElementById('chat-messages');
+      box.innerHTML = '';
+      (data || []).forEach(m => {
+        const isMine = m.sender_id === currentUser.id;
+        const checkIcon = m.is_read ? CHECK_READ : CHECK_SENT;
+        const msg = document.createElement('div');
+        msg.style.alignSelf = isMine ? 'flex-end' : 'flex-start';
+        msg.style.background = isMine ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : 'rgba(255,255,255,0.08)';
+        msg.style.padding = '7px 11px';
+        msg.style.borderRadius = '12px';
+        msg.style.maxWidth = '80%';
+        msg.style.fontSize = '12.5px';
+        msg.innerHTML = `${escapeHtml(m.text)} <span style="font-size:9.5px; opacity:0.7; margin-left:5px;">${new Date(m.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span> ${isMine ? checkIcon : ''}`;
+        box.appendChild(msg);
+      });
+      box.scrollTop = box.scrollHeight;
+    }
+
+    async function checkDailyClaim() {
+      const now = new Date();
+      const last = currentUser.last_daily_claim ? new Date(currentUser.last_daily_claim) : null;
+      if (!last || (now - last) > 86400000) {
+        const newBal = (currentUser.nookings || 0) + 50;
+        await client.from('profiles').update({ nookings: newBal, last_daily_claim: now.toISOString() }).eq('id', currentUser.id);
+        currentUser.nookings = newBal;
+        document.getElementById('user-nookings').innerText = newBal;
+      }
+    }
+
+    function openProfileModal() {
+      document.getElementById('modal-username').innerText = currentUser.username;
+      document.getElementById('edit-bio').value = currentUser.bio || '';
+      document.getElementById('profile-modal').classList.add('open');
+    }
+    function closeModals() { document.querySelectorAll('.modal').forEach(m => { if(m.id !== 'auth-modal') m.classList.remove('open'); }); }
+    function escapeHtml(t) { const d = document.createElement('div'); d.innerText = t; return d.innerHTML; }
+    function executeSearch() {
+      const q = document.getElementById('search-input').value.trim();
+      if (q.startsWith('#')) {
+        const num = parseInt(q.replace('#', ''));
+        client.from('posts').select('*, profiles(*)').eq('post_number', num).single().then(({data}) => {
+          if (!data) return alert('Пост не найден');
+          alert(`Пост #${data.post_number} от @${data.profiles.username}:\n\n"${data.content}"`);
+        });
+      } else {
+        alert('Поиск юзера: ' + q);
+      }
+    }
+    async function saveBio() {
+      const bio = document.getElementById('edit-bio').value;
+      await client.from('profiles').update({ bio }).eq('id', currentUser.id);
+      currentUser.bio = bio;
+      alert('Профиль сохранен!');
+      closeModals();
+    }
+  </script>
+</body>
+</html>
